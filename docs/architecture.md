@@ -423,3 +423,19 @@ Then add Facebook posting and Instagram publishing adapters.
 - YouTube Data API: https://developers.google.com/youtube/v3
 
 **Maintenance note:** API permissions, product access and costs change. Verify live provider requirements against official docs during implementation. This document is the architectural baseline, not proof that integrations have been connected.
+
+## Mandatory attribution for AI-assisted sourced news
+
+**Non-negotiable publishing rule:** Every BNC article, news bite, translated summary, news card, video description, and social post derived from external reporting must credit the original source(s). This rule is enforced by the backend and publishing adapters, not by relying on a model prompt alone.
+
+- Maintain a structured `story_sources` relationship with publisher name, original URL, source type, publication date where available, retrieval date, rights/use notes, and the specific claims supported. Prefer original reporting over syndicated copies where identifiable.
+- Show a visible **Sources / Original reporting** section with clickable original URLs on every sourced WordPress article or news bite. For multiple reporting sources, list each substantive source; never fabricate links, sources or quotes.
+- For Facebook and other link-friendly posts, include readable publisher credits and appropriate links. For Instagram or image-based channels, show publisher credits in the caption and, where practical, on the card; links can be supplied through supported platform mechanisms rather than implying captions are clickable.
+- AI-assisted paraphrases, translation, updates and syndication still carry the original source credit. BNC original reporting must be distinguished from summaries of third-party reporting.
+- Add a validation gate: sourced content with missing publisher or original source reference remains in **Needs Attribution** and cannot be published. An editor must resolve ambiguous provenance; exceptions require a recorded editorial justification for genuinely original BNC reporting.
+- Maintain explicit rights to reuse images, text or other third-party assets. Attribution is not permission, and source credit does not cure copyright restrictions.
+- On corrections, article updates and social re-posting, preserve credit links and audit changes to attributed sources.
+
+**Suggested data additions:** `story_sources.publisher_name`, `story_sources.original_url`, `story_sources.attribution_text`, `story_sources.is_original_reporting`, `story_sources.rights_status`, plus per-platform `channel_variants.attribution_rendered` and a publication preflight validation result.
+
+**Publication acceptance test:** Create an AI draft from an RSS item, approve it, and attempt to publish without attribution. Verify publication is blocked. Add verified publisher name and original URL, publish to WordPress and a social platform, and confirm credits appear in the live results.
