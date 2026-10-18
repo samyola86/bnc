@@ -424,18 +424,20 @@ Then add Facebook posting and Instagram publishing adapters.
 
 **Maintenance note:** API permissions, product access and costs change. Verify live provider requirements against official docs during implementation. This document is the architectural baseline, not proof that integrations have been connected.
 
-## Mandatory attribution for AI-assisted sourced news
+## Source attribution: automatic credits, editorial flags and manual entry
 
-**Non-negotiable publishing rule:** Every BNC article, news bite, translated summary, news card, video description, and social post derived from external reporting must credit the original source(s). This rule is enforced by the backend and publishing adapters, not by relying on a model prompt alone.
+**Editorial rule:** BNC should automatically carry original-source attribution into AI-assisted articles, news bites and social variants wherever possible. **Missing source credit is a non-blocking dashboard warning, never an automatic publishing prohibition.** Editors remain responsible for source review and publication decisions.
 
-- Maintain a structured `story_sources` relationship with publisher name, original URL, source type, publication date where available, retrieval date, rights/use notes, and the specific claims supported. Prefer original reporting over syndicated copies where identifiable.
-- Show a visible **Sources / Original reporting** section with clickable original URLs on every sourced WordPress article or news bite. For multiple reporting sources, list each substantive source; never fabricate links, sources or quotes.
-- For Facebook and other link-friendly posts, include readable publisher credits and appropriate links. For Instagram or image-based channels, show publisher credits in the caption and, where practical, on the card; links can be supplied through supported platform mechanisms rather than implying captions are clickable.
-- AI-assisted paraphrases, translation, updates and syndication still carry the original source credit. BNC original reporting must be distinguished from summaries of third-party reporting.
-- Add a validation gate: sourced content with missing publisher or original source reference remains in **Needs Attribution** and cannot be published. An editor must resolve ambiguous provenance; exceptions require a recorded editorial justification for genuinely original BNC reporting.
-- Maintain explicit rights to reuse images, text or other third-party assets. Attribution is not permission, and source credit does not cure copyright restrictions.
-- On corrections, article updates and social re-posting, preserve credit links and audit changes to attributed sources.
+- Preserve structured source records: publisher name, original URL, source type, publication/retrieval time, rights notes and supporting claims. Do not fabricate credits or links.
+- Prepopulate publisher names and original links from ingested source metadata when known; retain credits through summaries, translations, updates and platform variants.
+- Provide a clearly visible, editable **Sources & Credits** section in the full-page story editor. Editors can **Add Source**, edit or delete an attribution entry, type a manual publisher name, optionally supply an original URL, add a credit note, and designate original BNC reporting.
+- Show a prominent **Missing source credit** or **Attribution needs review** warning on the story/editor/publishing screens when appropriate. Allow the editor to publish despite the warning; never automatically disable the Publish button solely because attribution is absent.
+- At publication, display an unobtrusive warning/confirmation when source fields are incomplete. Record who proceeded and when in the audit trail; do not require a forced justification.
+- Website articles should render the supplied source credit(s) and clickable URLs when available. Channel adapters should preserve appropriate visible credits in Facebook posts and Instagram captions/cards; adapt link placement to platform capabilities.
+- For manually entered credits without URLs, render the publisher or attribution text without inventing a destination.
+- On updates or corrections, preserve or allow revision of the credit list and its audit history.
+- **Rights remain independent:** attribution alone does not authorize copying restricted text or photographs; enforce applicable permissions separately from the missing-credit warning.
 
-**Suggested data additions:** `story_sources.publisher_name`, `story_sources.original_url`, `story_sources.attribution_text`, `story_sources.is_original_reporting`, `story_sources.rights_status`, plus per-platform `channel_variants.attribution_rendered` and a publication preflight validation result.
+**Suggested data fields:** `story_sources.publisher_name`, `story_sources.original_url` (nullable), `story_sources.attribution_text`, `story_sources.is_original_reporting`, `story_sources.rights_status`, `story_sources.entry_method` (auto/manual), `story_sources.last_edited_by`; `channel_variants.attribution_rendered`; `publications.attribution_warning_at_publish`.
 
-**Publication acceptance test:** Create an AI draft from an RSS item, approve it, and attempt to publish without attribution. Verify publication is blocked. Add verified publisher name and original URL, publish to WordPress and a social platform, and confirm credits appear in the live results.
+**Acceptance test:** Generate an AI draft from an RSS item with no recovered source credit. Verify a warning appears and a manual source-entry form is available; publishing remains enabled for an otherwise approved story. Add a publisher credit manually and verify it appears on WordPress and appropriate social outputs. Publish another approved story with the warning unresolved and verify the choice is logged, without being blocked for missing attribution.
