@@ -1,0 +1,12 @@
+{
+  "name": "bnc-newsroom",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "npm run dev --workspace @bnc/dashboard",
+    "build": "npm run build --workspace @bnc/dashboard",
+    "lint": "npm run lint --workspace @bnc/dashboard",
+    "typecheck": "npm run typecheck --workspace @bnc/dashboard"
+  }
+}

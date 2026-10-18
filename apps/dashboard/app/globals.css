@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f7f9; --foreground: #19212e; --card: #fff; --card-foreground: #19212e;
+  --primary: #c61f32; --primary-foreground: #fff; --muted: #eef0f3; --muted-foreground: #626b79;
+  --border: #e3e6eb; --ring: #c61f32;
+}
+@theme inline {
+  --color-background: var(--background); --color-foreground: var(--foreground);
+  --color-card: var(--card); --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border); --color-ring: var(--ring);
+  --font-sans: Arial, "Noto Sans Bengali", sans-serif;
+}
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground antialiased; }
+  a, button, input, textarea, select { @apply focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring; }
+}

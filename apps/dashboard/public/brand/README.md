@@ -1,0 +1,1 @@
+Place the supplied BNC logo here as `bnc-logo.svg` or `bnc-logo.png` and update the sidebar to use it at its original aspect ratio. No logo asset was present during initialization. The current BNC text is a placeholder, not a recreated brand mark.
