@@ -15,6 +15,13 @@ def test_foundation_schema_is_resolvable():
         "story_versions",
         "channels",
         "publications",
+        "feeds",
+        "feed_entries",
+        "ingested_items",
+        "collection_runs",
+        "ingestion_settings",
+        "story_sources",
+        "audit_events",
     }
     constraints = inspector.get_unique_constraints("story_versions")
     assert any(c["column_names"] == ["story_id", "version_number"] for c in constraints)
@@ -34,10 +41,28 @@ def test_initial_migration_matches_models_and_downgrades(tmp_path, monkeypatch):
     database_url = f"sqlite:///{(tmp_path / 'migration.db').as_posix()}"
     monkeypatch.setattr(get_settings(), "database_url", database_url)
     config = Config(str(api_root / "alembic.ini"))
+    # Verify an existing registry record survives the additive migration safely.
+    command.upgrade(config, "0001_foundation")
+    from sqlalchemy import text
+
+    engine = create_engine(database_url)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO sources (id,publisher,homepage,language,rights,notes) "
+                "VALUES ('00000000000000000000000000000001','Existing publisher',"
+                "'https://publisher.example/','en','unverified',NULL)"
+            )
+        )
+    engine.dispose()
     command.upgrade(config, "head")
     engine = create_engine(database_url)
     with engine.connect() as connection:
         assert compare_metadata(MigrationContext.configure(connection), Base.metadata) == []
+        row = connection.execute(
+            text("SELECT url, active, source_type, extraction_mode, notes FROM sources")
+        ).one()
+        assert tuple(row) == ("https://publisher.example/", 0, "manual", "reference_only", "")
     engine.dispose()
     command.downgrade(config, "base")
     assert inspect(engine).get_table_names() == ["alembic_version"]

@@ -39,12 +39,12 @@ docs/                           Architecture, API, policy, and runbooks
 
 ## Implemented scope
 
-All nine navigation destinations, responsive sidebar, overview with database counts and connection state, full-width writing layout preview, and clear empty states. The frontend uses locally owned shadcn/ui-style Button and Card components, a Radix Slot primitive, shared design tokens, and `components.json` for adding components with the shadcn CLI.
+All nine navigation destinations, responsive sidebar, and overview with database counts and connection state. Sources supports registration, testing, website feed discovery, activation, frequency, and manual collection. News Feeds displays real attributed candidates with filtering, ranking, pins, editorial status, and configurable 20–50 item batches. Candidate drafts have a full-page editor with immutable revisions, optimistic concurrency, and editable Sources & Credits. The original Manual Writing preview remains separate.
 
-FastAPI provides liveness/readiness and a read-only `/api/v1/dashboard/overview`. The initial PostgreSQL migration covers users, sources, stories, story revisions, channels, and publications, with UUID keys, timezone-aware timestamps, revision uniqueness, foreign keys, and state checks. Celery uses Redis; MinIO provides private local object storage and bucket provisioning.
+FastAPI provides health endpoints, dashboard counts, and the protected source/ingestion/draft APIs. PostgreSQL stores feeds, deduplicated candidates, feed provenance, collection jobs, revisioned credits, audit events, and queue configuration. Celery and Redis handle scheduled collection, per-origin rate limiting, and job execution; MinIO provides private local object storage. See the [Sources and feeds guide](docs/api/sources-and-feeds.md) for behavior and tests.
 
 ## Planned scope
 
-Authentication/RBAC, persisted editing with TipTap, approval/audit records, complete source/feed and taxonomy schemas, media upload, revision conflicts, scheduling, SSE, and all external integrations. The writing preview does not save data. No external API keys are required or used. This initialization does not implement the full vertical slice in architecture section 19.
+Per-user authentication/MFA, TipTap rich text, editorial approvals, complete taxonomy/media workflows, publication scheduling, SSE, and AI/WordPress/social integrations. The source modules use a server-only local editor credential shared by Next.js and FastAPI; generate `INGESTION_API_TOKEN` in `.env`. Public RSS/Atom and JSON Feed collection needs no external API keys. The separate Manual Writing preview does not save data. The full publishing vertical slice in architecture section 19 remains planned.
 
 The supplied logo and legacy `Newsroom_Dashboard.html` were absent from the repository. A text wordmark is used until the original asset is supplied; see `public/brand/README.md`. Bengali/English input is supported, timestamps are stored in UTC, and the interface identifies Asia/Dhaka as the display timezone.

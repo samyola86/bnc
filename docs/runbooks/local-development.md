@@ -8,7 +8,11 @@ docker compose --env-file .env -f infrastructure/docker-compose.yml config --qui
 docker compose --env-file .env -f infrastructure/docker-compose.yml up --build
 ```
 
-Compose runs PostgreSQL, Redis, MinIO, bucket initialization, a one-shot migration, FastAPI, a Celery worker and scheduler, and Next.js. There are no scheduled external jobs. Ports bind to localhost. The `.env` values are development credentials only. If you change credentials, keep `DATABASE_URL` in sync for host-based commands; Compose constructs its internal database URL from `POSTGRES_*`.
+Compose runs PostgreSQL, Redis, MinIO, bucket initialization, a one-shot migration, FastAPI, a Celery worker and scheduler, and Next.js. Registered, permitted sources collect on schedule; AI and external publishing remain inactive. Ports bind to localhost. The `.env` values are development credentials only. If you change credentials, keep `DATABASE_URL` in sync for host-based commands; Compose constructs its internal database URL from `POSTGRES_*`.
+
+Set `INGESTION_API_TOKEN` in `.env` to a random server-only editor credential before using Sources and News Feeds. For example, generate a value with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` and paste it into `.env`. Compose passes it to FastAPI and Next.js; never use a `NEXT_PUBLIC_*` variable. Celery Beat now checks due registered sources every minute and collects only active, permitted feed metadata according to each source's frequency. No sources are seeded automatically on a fresh database.
+
+The first build takes several minutes: MinIO and its client are compiled from pinned upstream source releases because the original community container images are no longer available from Docker Hub/Quay. Subsequent starts reuse the local images. Docker Desktop must report its Linux engine as running; on Windows it needs WSL 2. Restart your terminal after installing Docker so its CLI is added to PATH.
 
 Open the dashboard at http://localhost:3000, API docs at http://localhost:8000/docs, and MinIO console at http://localhost:9001 (credentials in `.env`). Readiness is http://localhost:8000/health/ready. The overview starts with real zero counts in an empty database.
 
@@ -45,7 +49,7 @@ alembic -c services/api/alembic.ini upgrade head
 uvicorn app.main:app --reload --app-dir services/api
 ```
 
-The API uses localhost defaults and loads the root `.env`. Next.js uses the localhost API default unless `API_INTERNAL_URL` is set in the shell or `apps/dashboard/.env.local`.
+The API uses localhost defaults and loads the root `.env`. Next.js uses the localhost API default unless `API_INTERNAL_URL` is set in the shell or `apps/dashboard/.env.local`. For host frontend development, also set the same `INGESTION_API_TOKEN` in that shell or `apps/dashboard/.env.local` so its server proxy can authorize source requests.
 
 ## Database changes
 

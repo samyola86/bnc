@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import JSON, CheckConstraint, ForeignKey, String, UniqueConstraint
+from sqlalchemy import JSON, CheckConstraint, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, Record
@@ -23,6 +23,7 @@ class EditorialState(enum.StrEnum):
 class Story(Record, Base):
     __tablename__ = "stories"
     __table_args__ = (
+        UniqueConstraint("origin_item_id", name="uq_story_origin"),
         CheckConstraint("language IN ('bn', 'en')", name="ck_story_language"),
         CheckConstraint(
             "status IN (" + ",".join(f"'{state.value}'" for state in EditorialState) + ")",
@@ -34,6 +35,9 @@ class Story(Record, Base):
     language: Mapped[str] = mapped_column(String(8), default="bn")
     status: Mapped[str] = mapped_column(String(32), default="DRAFT", index=True)
     author_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    origin_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("ingested_items.id", name="fk_stories_origin_item")
+    )
     # Composite revision references are introduced with the write workflow so that
     # cross-story approval and stale-write checks can be enforced together.
 
@@ -50,3 +54,30 @@ class StoryVersion(Record, Base):
     editor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     title: Mapped[str] = mapped_column(String(500))
     content_json: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class StorySource(Record, Base):
+    """Credits are versioned with the draft; original feed provenance remains immutable."""
+
+    __tablename__ = "story_sources"
+
+    story_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stories.id"), index=True)
+    version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("story_versions.id"), index=True)
+    source_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("sources.id"))
+    ingested_item_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("ingested_items.id"))
+    publisher_name: Mapped[str] = mapped_column(String(200), default="")
+    original_url: Mapped[str | None] = mapped_column(String(2048))
+    attribution_text: Mapped[str] = mapped_column(Text, default="")
+    is_original_reporting: Mapped[bool] = mapped_column(default=False)
+    rights_status: Mapped[str] = mapped_column(String(100), default="unverified")
+    entry_method: Mapped[str] = mapped_column(String(16), default="manual")
+    last_edited_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
+class AuditEvent(Record, Base):
+    __tablename__ = "audit_events"
+
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    action: Mapped[str] = mapped_column(String(100))
+    resource_id: Mapped[uuid.UUID]
+    event_details: Mapped[dict] = mapped_column(JSON, default=dict)
