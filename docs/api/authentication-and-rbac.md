@@ -26,7 +26,7 @@ Editors cannot approve a revision they own, edited or submitted. A Superadmin ca
 docker compose --env-file .env -f infrastructure/docker-compose.yml exec api python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # Copy the generated value into AUTH_ENCRYPTION_KEY in .env; do not commit it.
 docker compose --env-file .env -f infrastructure/docker-compose.yml up -d
-docker compose --env-file .env -f infrastructure/docker-compose.yml exec -it api python -m app.auth.bootstrap
+docker compose --env-file .env -f infrastructure/docker-compose.yml exec api python -m app.auth.bootstrap
 ```
 
 The CLI prompts for name, email, username and a password without echoing it. It closes permanently once a Superadmin identity exists; PostgreSQL advisory locking serializes concurrent bootstrap attempts. There is no default administrator account or password. Existing shared identities migrate to inactive CONTENT_WRITER records with no password, preserving their historical authorship without elevating them.
