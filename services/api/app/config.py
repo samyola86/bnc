@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = "http://localhost:9000"
     s3_bucket: str = "bnc-media"
     ingestion_api_token: str = ""
+    openai_api_key: str = ""
+    openai_model: str = ""
+    ai_hourly_limit: int = 20
 
 
 @lru_cache

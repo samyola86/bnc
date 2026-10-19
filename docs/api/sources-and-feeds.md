@@ -37,7 +37,7 @@ All backend paths are prefixed with `/api/v1`.
 | GET | `/feeds/items` | Ranked candidates with publisher, category, publication date, original link, status, and structured attribution. |
 | PATCH | `/feeds/items/{id}` | Select/dismiss, pin, or edit ranking inputs/override. |
 | POST | `/feeds/items/{id}/draft` | Idempotently create an attributed candidate draft. |
-| GET / PATCH | `/stories/{id}` | Read/edit a candidate-derived draft. Saves require `base_version`; stale saves return 409. |
+| GET / PATCH | `/stories/{id}` | Read/edit candidate or manual drafts. Saves require `base_version`; stale saves return 409. |
 
 `GET /feeds/items` accepts `status`, `source_id`, `query`, `category`, and `cursor`. An opaque ranking cursor retrieves another batch using a fixed freshness clock, so new arrivals before the cursor do not duplicate previously viewed stories. Changing filters requires a fresh cursor. The batch limit is persisted independently of how many articles the collector stores. A feed with 14 valid items shows 14 candidates, not fabricated placeholders. Inactive sources are excluded from candidate views; stored provenance is retained.
 
@@ -66,6 +66,8 @@ Each save creates an immutable `story_versions` record and a version-specific `s
 Missing credits produce a warning and `attribution_blocks_publishing: false`; saving remains available. Rights and editorial approval remain independent. The existing Publishing module and external publishing adapters are outside this change; no publication integration or new publishing action is introduced.
 
 ## Verification
+
+The shared editor also supports AI preview/apply/save and persistent Manual Writing. See [AI and Manual Writing](ai-and-manual-writing.md) for the additional protected story and AI-job endpoints. Automatic feed collection does not trigger AI generation or publishing.
 
 The test suite includes fixtures for RSS, Atom, JSON Feed, discovery, unsupported pages/APIs, malformed XML, access restrictions, SSRF, redirect policy, DNS pinning, body limits, conditional requests, failure backoff, scheduling, ranking, pagination, attribution edits, and immutable revision conflicts. PostgreSQL tests use isolated randomly named schemas for concurrent deduplication, draft creation, revision conflict handling, and scheduler reservations. Worker metadata is also tested in a fresh Python process.
 

@@ -87,6 +87,24 @@ class DraftInput(BaseModel):
     body: str = Field(default="", max_length=100000)
     category: str = Field(default="", max_length=100)
     credits: list[CreditInput] = Field(default_factory=list, max_length=30)
+    language: Literal["bn", "en"] | None = None
+    tags: list[str] = Field(default_factory=list, max_length=20)
+    social_captions: dict[Literal["facebook", "instagram"], str] = Field(default_factory=dict)
+    ai_job_id: uuid.UUID | None = None
+
+    @field_validator("tags")
+    @classmethod
+    def bounded_tags(cls, value):
+        if any(not tag.strip() or len(tag) > 100 for tag in value):
+            raise ValueError("Tags must contain 1–100 characters")
+        return list(dict.fromkeys(tag.strip() for tag in value))
+
+    @field_validator("social_captions")
+    @classmethod
+    def bounded_captions(cls, value):
+        if any(len(caption) > 5000 for caption in value.values()):
+            raise ValueError("Captions must be at most 5000 characters")
+        return value
 
     @field_validator("title")
     @classmethod

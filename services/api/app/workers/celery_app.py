@@ -2,7 +2,9 @@ from celery import Celery
 
 from app.config import get_settings
 
-celery_app = Celery("bnc", broker=get_settings().redis_url, include=["app.ingestion.tasks"])
+celery_app = Celery(
+    "bnc", broker=get_settings().redis_url, include=["app.ingestion.tasks", "app.ai.tasks"]
+)
 celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,

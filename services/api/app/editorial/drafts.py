@@ -8,7 +8,7 @@ from app.editorial.models import Story, StorySource, StoryVersion
 from app.ingestion.candidates import attribution_rows
 from app.ingestion.models import IngestedItem, Source
 from app.ingestion.schemas import DraftInput
-from app.ingestion.service import audit
+from app.ingestion.service import audit, now
 
 
 def credit_warning(credits: list[dict]) -> list[str]:
@@ -31,8 +31,8 @@ def credit_warning(credits: list[dict]) -> list[str]:
 
 def draft_view(session, story_id: uuid.UUID):
     story = session.get(Story, story_id)
-    if not story or not story.origin_item_id:
-        raise HTTPException(404, "Candidate draft not found")
+    if not story:
+        raise HTTPException(404, "Draft not found")
     version = session.scalar(
         select(StoryVersion)
         .where(StoryVersion.story_id == story.id)
@@ -58,7 +58,7 @@ def draft_view(session, story_id: uuid.UUID):
     ]
     return {
         "id": str(story.id),
-        "origin_item_id": str(story.origin_item_id),
+        "origin_item_id": str(story.origin_item_id) if story.origin_item_id else None,
         "title": version.title,
         "version": version.version_number,
         "status": story.status,
@@ -67,7 +67,9 @@ def draft_view(session, story_id: uuid.UUID):
         "credits": credits,
         "warnings": credit_warning(credits),
         "attribution_blocks_publishing": False,
-        "provenance": attribution_rows(session, story.origin_item_id),
+        "provenance": attribution_rows(session, story.origin_item_id)
+        if story.origin_item_id
+        else [],
     }
 
 
@@ -119,8 +121,8 @@ def create_draft(session, item_id):
 
 def update_draft(session, story_id, body: DraftInput):
     story = session.scalar(select(Story).where(Story.id == story_id).with_for_update())
-    if not story or not story.origin_item_id:
-        raise HTTPException(404, "Candidate draft not found")
+    if not story:
+        raise HTTPException(404, "Draft not found")
     if story.status not in {"DRAFT", "CHANGES_REQUESTED"}:
         raise HTTPException(409, "Only draft revisions can be edited here")
     previous = session.scalar(
@@ -135,12 +137,46 @@ def update_draft(session, story_id, body: DraftInput):
         if credit.source_id and not session.get(Source, credit.source_id):
             raise HTTPException(422, "A referenced source no longer exists")
     actor = ensure_editor(session)
+    ai_metadata = {}
+    if body.ai_job_id:
+        from app.ai.models import AIJob
+
+        job = session.get(AIJob, body.ai_job_id)
+        if not job or job.story_id != story.id or job.status != "SUCCEEDED":
+            raise HTTPException(422, "AI preview does not belong to this story or is not ready")
+        if job.base_version != previous.version_number:
+            raise HTTPException(409, "AI preview is based on an older revision. Generate again")
+        ai_metadata = {
+            "ai_job_id": str(job.id),
+            "human_review_required": True,
+            "claims_to_verify": job.result["claims_to_verify"],
+            "editorial_warnings": job.result["editorial_warnings"],
+        }
+    elif previous.content_json.get("human_review_required"):
+        ai_metadata = {
+            key: previous.content_json[key]
+            for key in (
+                "ai_job_id",
+                "human_review_required",
+                "claims_to_verify",
+                "editorial_warnings",
+            )
+            if key in previous.content_json
+        }
     version = StoryVersion(
         story_id=story.id,
         version_number=previous.version_number + 1,
         editor_id=actor,
         title=body.title,
-        content_json={"summary": body.summary, "body": body.body, "category": body.category},
+        content_json={
+            "summary": body.summary,
+            "body": body.body,
+            "category": body.category,
+            "language": body.language or story.language,
+            "tags": body.tags,
+            "social_captions": body.social_captions,
+            **ai_metadata,
+        },
     )
     session.add(version)
     session.flush()
@@ -156,10 +192,13 @@ def update_draft(session, story_id, body: DraftInput):
             )
         )
     story.status = "DRAFT"
+    story.updated_at = now()
+    if body.language:
+        story.language = body.language
     warnings = credit_warning([c.model_dump() for c in body.credits])
     audit(
         session,
-        "candidate.draft_edited",
+        "candidate.draft_edited" if story.origin_item_id else "story.draft_edited",
         story.id,
         actor,
         version=version.version_number,

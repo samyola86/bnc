@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException
 from app.api.health import router as health_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.ingestion import router as ingestion_router
+from app.api.v1.stories import router as stories_router
 from app.config import get_settings
 
 logger = logging.getLogger("bnc.api")
@@ -64,3 +65,4 @@ async def database_error(request: Request, exc: SQLAlchemyError):
 app.include_router(health_router)
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(ingestion_router, prefix="/api/v1")
+app.include_router(stories_router, prefix="/api/v1")

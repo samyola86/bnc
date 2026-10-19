@@ -1,5 +1,6 @@
 """Import every mapped model for Alembic metadata discovery."""
 
+from app.ai.models import AIJob
 from app.auth.models import User
 from app.editorial.models import AuditEvent, Story, StorySource, StoryVersion
 from app.ingestion.models import (
@@ -13,6 +14,7 @@ from app.ingestion.models import (
 from app.publishing.models import Channel, Publication
 
 __all__ = [
+    "AIJob",
     "User",
     "Story",
     "StoryVersion",

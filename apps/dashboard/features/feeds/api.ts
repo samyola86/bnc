@@ -31,6 +31,8 @@ export type Candidate = {
 };
 export type CandidatePage = { items: Candidate[]; total: number; candidate_limit: number; next_cursor: string | null };
 export type Draft = {
-  id: string; origin_item_id: string; title: string; summary: string; body: string; category: string;
+  id: string; origin_item_id: string | null; title: string; summary: string; body: string; category: string;
   version: number; status: string; credits: Credit[]; warnings: string[]; provenance: Provenance[];
+  language: "bn" | "en"; tags?: string[]; social_captions?: { facebook?: string; instagram?: string };
+  ai_job_id?: string; human_review_required?: boolean; claims_to_verify?: string[]; editorial_warnings?: string[];
 };

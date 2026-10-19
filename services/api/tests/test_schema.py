@@ -22,6 +22,7 @@ def test_foundation_schema_is_resolvable():
         "ingestion_settings",
         "story_sources",
         "audit_events",
+        "ai_jobs",
     }
     constraints = inspector.get_unique_constraints("story_versions")
     assert any(c["column_names"] == ["story_id", "version_number"] for c in constraints)

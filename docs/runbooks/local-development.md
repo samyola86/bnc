@@ -8,7 +8,7 @@ docker compose --env-file .env -f infrastructure/docker-compose.yml config --qui
 docker compose --env-file .env -f infrastructure/docker-compose.yml up --build
 ```
 
-Compose runs PostgreSQL, Redis, MinIO, bucket initialization, a one-shot migration, FastAPI, a Celery worker and scheduler, and Next.js. Registered, permitted sources collect on schedule; AI and external publishing remain inactive. Ports bind to localhost. The `.env` values are development credentials only. If you change credentials, keep `DATABASE_URL` in sync for host-based commands; Compose constructs its internal database URL from `POSTGRES_*`.
+Compose runs PostgreSQL, Redis, MinIO, bucket initialization, a one-shot migration, FastAPI, a Celery worker and scheduler, and Next.js. Registered, permitted sources collect on schedule. AI drafting is available when configured; external publishing remains inactive. Ports bind to localhost. The `.env` values are development credentials only. If you change credentials, keep `DATABASE_URL` in sync for host-based commands; Compose constructs its internal database URL from `POSTGRES_*`.
 
 Set `INGESTION_API_TOKEN` in `.env` to a random server-only editor credential before using Sources and News Feeds. For example, generate a value with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` and paste it into `.env`. Compose passes it to FastAPI and Next.js; never use a `NEXT_PUBLIC_*` variable. Celery Beat now checks due registered sources every minute and collects only active, permitted feed metadata according to each source's frequency. No sources are seeded automatically on a fresh database.
 
@@ -17,6 +17,8 @@ The first build takes several minutes: MinIO and its client are compiled from pi
 Open the dashboard at http://localhost:3000, API docs at http://localhost:8000/docs, and MinIO console at http://localhost:9001 (credentials in `.env`). Readiness is http://localhost:8000/health/ready. The overview starts with real zero counts in an empty database.
 
 ## Checks
+
+Manual Writing creates and explicitly saves persistent stories without external credentials. To enable AI drafting, set `OPENAI_API_KEY` and `OPENAI_MODEL` only in the root ignored `.env`, then recreate services with `docker compose --env-file .env -f infrastructure/docker-compose.yml up -d --build`. Do not overwrite an existing `.env` when upgrading. Compose passes these settings to backend services only. `AI_HOURLY_LIMIT` defaults to 20 jobs per editor. Keep the worker running and see the [AI and Manual Writing guide](../api/ai-and-manual-writing.md) for evidence permissions, preview/apply/save behavior, and error handling.
 
 ```powershell
 npm ci
