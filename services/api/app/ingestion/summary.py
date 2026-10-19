@@ -2,7 +2,7 @@ from sqlalchemy import func, select
 
 from app.editorial.models import Story, StoryVersion
 from app.ingestion.models import IngestedItem
-from app.publishing.models import Publication
+from app.publishing.models import Publication, PublishingRequest
 
 
 def newsroom_summary(session):
@@ -34,6 +34,15 @@ def newsroom_summary(session):
             or 0
         )
 
+    awaiting = (
+        select(StoryVersion.story_id)
+        .join(Publication, Publication.approved_version_id == StoryVersion.id)
+        .where(Publication.status.in_(["PENDING", "SCHEDULED", "RUNNING", "RETRYABLE_FAILED"]))
+    )
+    queued = select(PublishingRequest.story_id).where(PublishingRequest.status != "CANCELLED")
+    awaiting_count = session.scalar(
+        select(func.count()).select_from(awaiting.union(queued).subquery())
+    )
     return {
         "incoming": {
             "count": incoming,
@@ -46,9 +55,9 @@ def newsroom_summary(session):
             "definition": "Independently authored stories in draft or changes requested",
         },
         "awaiting_publication": {
-            "count": publication_count(["PENDING", "SCHEDULED", "RUNNING", "RETRYABLE_FAILED"]),
-            "available": False,
-            "definition": "Stored pending deliveries; publishing workflow is not implemented",
+            "count": awaiting_count or 0,
+            "available": True,
+            "definition": "Queued stories and pending deliveries; platform connections required",
         },
         "published": {
             "count": publication_count(["CONFIRMED"]),

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -114,6 +115,31 @@ class DraftInput(BaseModel):
     tags: list[str] = Field(default_factory=list, max_length=20)
     social_captions: dict[Literal["facebook", "instagram"], str] = Field(default_factory=dict)
     ai_job_id: uuid.UUID | None = None
+    format: Literal["article", "news_bite"] = "article"
+    contributors: list[str] = Field(default_factory=list, max_length=20)
+    cover_image_id: uuid.UUID | None = None
+    image_alt: str = Field(default="", max_length=1000)
+    image_caption: str = Field(default="", max_length=2000)
+    reporting_notes: str = Field(default="", max_length=10000)
+    destinations: list[Literal["wordpress", "facebook", "instagram", "linkedin", "x"]] = Field(
+        default_factory=list, max_length=5
+    )
+    social_caption: str = Field(default="", max_length=5000)
+    scheduled_at: datetime | None = None
+
+    @field_validator("scheduled_at")
+    @classmethod
+    def timezone_required(cls, value):
+        if value and value.utcoffset() is None:
+            raise ValueError("Schedule must include a timezone")
+        return value
+
+    @field_validator("contributors")
+    @classmethod
+    def bounded_contributors(cls, value):
+        if any(not name.strip() or len(name) > 200 for name in value):
+            raise ValueError("Contributor names must contain 1–200 characters")
+        return list(dict.fromkeys(name.strip() for name in value))
 
     @field_validator("tags")
     @classmethod

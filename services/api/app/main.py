@@ -13,6 +13,8 @@ from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.ingestion import router as ingestion_router
 from app.api.v1.stories import router as stories_router
 from app.config import get_settings
+from app.media.routes import router as media_router
+from app.publishing.queue import router as publishing_router
 
 logger = logging.getLogger("bnc.api")
 app = FastAPI(title="BNC Newsroom API", version="0.1.0")
@@ -66,3 +68,5 @@ app.include_router(health_router)
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(ingestion_router, prefix="/api/v1")
 app.include_router(stories_router, prefix="/api/v1")
+app.include_router(media_router, prefix="/api/v1")
+app.include_router(publishing_router, prefix="/api/v1")

@@ -41,4 +41,8 @@ export type Draft = {
   language: "bn" | "en"; tags?: string[]; social_captions?: { facebook?: string; instagram?: string };
   ai_job_id?: string; human_review_required?: boolean; claims_to_verify?: string[]; editorial_warnings?: string[];
   assigned_author?: { id: string; name: string } | null;
+  format?: "article" | "news_bite"; contributors?: string[]; cover_image_id?: string | null;
+  image_alt?: string; image_caption?: string; reporting_notes?: string;
+  destinations?: ("wordpress" | "facebook" | "instagram" | "linkedin" | "x")[];
+  social_caption?: string; scheduled_at?: string | null;
 };

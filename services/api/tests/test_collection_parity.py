@@ -218,7 +218,7 @@ def test_database_summary_counts_and_unavailable_publishing(newsroom):  # noqa: 
     after = client.get("/api/v1/feeds/summary").json()
     assert after["incoming"]["count"] == 2 and after["original_drafts"]["count"] == 1
     assert not after["published"]["available"] and after["published"]["count"] == 0
-    assert not after["awaiting_publication"]["available"]
+    assert after["awaiting_publication"]["available"]
     assert client.get("/api/v1/feeds/summary", headers={"Authorization": ""}).status_code == 401
 
 

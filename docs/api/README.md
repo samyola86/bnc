@@ -15,3 +15,5 @@ Per-user authentication, approvals, and external publishing remain planned. The 
 Persistent Manual Writing and candidate drafts now share the story/version APIs. OpenAI Responses draft jobs return editable previews and require explicit human apply/save. See [AI and Manual Writing](ai-and-manual-writing.md) for endpoints, server-side configuration, permissions and tests.
 
 The Sources collection panel, archive/restore, Incoming Stories editorial table, summary counts and shared editor preview are described in [Collection and Incoming Stories](collection-and-incoming-stories.md).
+
+The shared editor now persists story format, contributor bylines, cover images, image alt text/credits, reporting notes, selected destinations, social captions and timezone-aware schedules. Private image upload/retrieval and the revision-bound editorial publishing queue are described in [Story media and queue](story-media-and-queue.md). Queue requests are saved preparation; external approval and automatic platform delivery remain unimplemented.

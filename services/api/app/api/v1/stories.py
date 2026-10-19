@@ -34,7 +34,7 @@ def create_story(body: ManualInput, session: DB):
     actor = ensure_editor(session)
     if "language" not in body.model_fields_set:
         body.language = collection_settings(session).draft_language
-    story = Story(language=body.language, status="DRAFT", author_id=actor)
+    story = Story(language=body.language, status="DRAFT", author_id=actor, type=body.format)
     session.add(story)
     session.flush()
     version = StoryVersion(
@@ -43,6 +43,7 @@ def create_story(body: ManualInput, session: DB):
         editor_id=actor,
         title=body.title,
         content_json=body.model_dump(
+            mode="json",
             include={
                 "summary",
                 "body",
@@ -50,7 +51,16 @@ def create_story(body: ManualInput, session: DB):
                 "tags",
                 "social_captions",
                 "language",
-            }
+                "format",
+                "contributors",
+                "cover_image_id",
+                "image_alt",
+                "image_caption",
+                "reporting_notes",
+                "destinations",
+                "social_caption",
+                "scheduled_at",
+            },
         ),
     )
     session.add(version)

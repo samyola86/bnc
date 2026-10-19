@@ -11,7 +11,7 @@ from app.ingestion.models import (
     IngestionSettings,
     Source,
 )
-from app.publishing.models import Channel, Publication
+from app.publishing.models import Channel, Publication, PublishingRequest
 
 __all__ = [
     "AIJob",
@@ -21,6 +21,7 @@ __all__ = [
     "Source",
     "Channel",
     "Publication",
+    "PublishingRequest",
     "Feed",
     "FeedEntry",
     "IngestedItem",

@@ -65,6 +65,9 @@ def draft_view(session, story_id: uuid.UUID):
         "version": version.version_number,
         "status": story.status,
         "language": story.language,
+        "format": story.type,
+        "contributors": [],
+        "destinations": [],
         "assigned_author": {"id": str(author.id), "name": author.name}
         if (author := session.get(User, story.author_id))
         else None,
@@ -179,6 +182,37 @@ def update_draft(session, story_id, body: DraftInput):
         editor_id=actor,
         title=body.title,
         content_json={
+            **{
+                key: value
+                for key, value in previous.content_json.items()
+                if key
+                in {
+                    "format",
+                    "contributors",
+                    "cover_image_id",
+                    "image_alt",
+                    "image_caption",
+                    "reporting_notes",
+                    "destinations",
+                    "social_caption",
+                    "scheduled_at",
+                }
+            },
+            **body.model_dump(
+                mode="json",
+                include=body.model_fields_set
+                & {
+                    "format",
+                    "contributors",
+                    "cover_image_id",
+                    "image_alt",
+                    "image_caption",
+                    "reporting_notes",
+                    "destinations",
+                    "social_caption",
+                    "scheduled_at",
+                },
+            ),
             "summary": body.summary,
             "body": body.body,
             "category": body.category,
@@ -202,6 +236,11 @@ def update_draft(session, story_id, body: DraftInput):
             )
         )
     story.status = "DRAFT"
+    if "format" in body.model_fields_set:
+        story.type = body.format
+    from app.publishing.queue import cancel_pending
+
+    cancel_pending(session, story.id)
     story.updated_at = now()
     if body.language:
         story.language = body.language

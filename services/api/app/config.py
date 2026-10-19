@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     s3_endpoint_url: str = "http://localhost:9000"
     s3_bucket: str = "bnc-media"
+    s3_access_key: str = "bnc_local"
+    s3_secret_key: str = "bnc_local_storage_password"
     ingestion_api_token: str = ""
     openai_api_key: str = ""
     openai_model: str = ""

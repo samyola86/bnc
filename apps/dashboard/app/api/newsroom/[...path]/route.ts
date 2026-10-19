@@ -9,7 +9,8 @@ const routes: Record<string, RegExp[]> = {
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const path = (await context.params).path.join("/");
-  if (!routes[request.method]?.some(pattern => pattern.test(path))) {
+  const extra = request.method === "GET" ? /^(publishing\/queue|media\/[0-9a-fA-F-]{36})$/ : request.method === "POST" ? /^(media|stories\/[0-9a-fA-F-]{36}\/queue|publishing\/queue\/[0-9a-fA-F-]{36}\/cancel)$/ : null;
+  if (!extra?.test(path) && !routes[request.method]?.some(pattern => pattern.test(path))) {
     return Response.json({ error: { message: "Route not found" } }, { status: 404 });
   }
   if (request.method !== "GET") {
@@ -32,7 +33,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
       const chunk = await reader.read();
       if (chunk.done) break;
       length += chunk.value.length;
-      if (length > 512 * 1024) {
+      if (length > (path === "media" ? 4 * 1024 * 1024 + 1024 : 512 * 1024)) {
         await reader.cancel();
         return Response.json({ error: { message: "The editor request is too large" } }, { status: 413 });
       }
@@ -45,7 +46,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
       method: request.method, body, cache: "no-store", signal: AbortSignal.timeout(60000),
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     });
-    return new Response(await response.text(), { status: response.status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+    return new Response(await response.arrayBuffer(), { status: response.status, headers: { "Content-Type": response.headers.get("content-type") ?? "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
   } catch {
     return Response.json({ error: { message: "The editorial API did not respond. Check the API and worker services" } }, { status: 503 });
   }

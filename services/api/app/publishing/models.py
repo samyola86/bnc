@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, Record
@@ -43,3 +43,17 @@ class Publication(Record, Base):
     remote_id: Mapped[str | None] = mapped_column(String(200))
     permalink: Mapped[str | None] = mapped_column(String(2048))
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PublishingRequest(Record, Base):
+    """Editorial queue intent; never a claim of platform delivery or approval."""
+
+    __tablename__ = "publishing_requests"
+    __table_args__ = (
+        CheckConstraint("status IN ('QUEUED','SCHEDULED','CANCELLED')", name="ck_request_status"),
+    )
+    story_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stories.id"), index=True)
+    version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("story_versions.id"))
+    destinations: Mapped[list] = mapped_column(JSON)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(24), index=True)

@@ -15,6 +15,7 @@ def test_foundation_schema_is_resolvable():
         "story_versions",
         "channels",
         "publications",
+        "publishing_requests",
         "feeds",
         "feed_entries",
         "ingested_items",
@@ -60,9 +61,7 @@ def test_initial_migration_matches_models_and_downgrades(tmp_path, monkeypatch):
     engine = create_engine(database_url)
     with engine.begin() as connection:
         connection.execute(text("UPDATE sources SET polling_interval=47"))
-        connection.execute(
-            text("UPDATE ingestion_settings SET candidate_limit=40 WHERE id=1")
-        )
+        connection.execute(text("UPDATE ingestion_settings SET candidate_limit=40 WHERE id=1"))
     engine.dispose()
     command.upgrade(config, "head")
     engine = create_engine(database_url)

@@ -50,3 +50,16 @@ Verified on 19 October 2026:
 - Browser inventory was empty and the in-app browser was unavailable. No visual or browser-interaction verification is claimed. No paid OpenAI request was made for this change; its provider and model configuration were preserved. Publishing, custom API adapters and full article extraction remain unimplemented.
 
 See [Collection and Incoming Stories](../api/collection-and-incoming-stories.md) for the settings semantics and additional API fields. Production contains no sample collection or simulated publishing.
+
+## Story editor media and publishing queue verification
+
+Verified on 19 October 2026:
+
+- **103 backend tests passed**, with isolated PostgreSQL integration checks and an opt-in real MinIO upload/read test enabled. The MinIO test removes only its own generated object. The existing Starlette/httpx deprecation warning remains.
+- New regression coverage checks revision persistence of format, contributors, image references, captions and notes; compatibility with older save clients; immutable history; stale-write rejection; queue idempotency; cancellation on edits; required publishing metadata; Instagram image requirements; timezone/future schedule validation; non-blocking missing credits; and authorization.
+- Image checks cover supported raster formats, decoded size/dimension limits, private storage round trips and invalid data. A final targeted run also verified truncated-image rejection: **11 passed, 1 skipped** (the opt-in real storage check was not enabled for that targeted run).
+- Ruff, frontend ESLint, TypeScript and the final Next.js production build pass. The additive publishing-request migration applied successfully; `alembic check` reports no schema drift.
+- Live HTTP checks returned 200 for Overview, Manual Writing, Publishing, the publishing queue proxy, summary and source listing. The existing BBC World source remains registered. Local sources and collected stories are database data, not repository seed files.
+- No browser was available in the automation inventory, so visual/browser interaction verification is not claimed. No paid AI request or external platform publication was made.
+
+The app preserves AI draft review, versioned source credits and original feed provenance. The new Publishing page stores revision-bound requests with selectable destinations and Dhaka-time schedules. It does not dispatch posts, grant editorial approval, simulate confirmed delivery, retry remote jobs or publish automatically at the requested time. Platform adapters and credentials are still required for those workflows. See [Story media and queue](../api/story-media-and-queue.md).
