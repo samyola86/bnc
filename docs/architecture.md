@@ -441,3 +441,50 @@ Then add Facebook posting and Instagram publishing adapters.
 **Suggested data fields:** `story_sources.publisher_name`, `story_sources.original_url` (nullable), `story_sources.attribution_text`, `story_sources.is_original_reporting`, `story_sources.rights_status`, `story_sources.entry_method` (auto/manual), `story_sources.last_edited_by`; `channel_variants.attribution_rendered`; `publications.attribution_warning_at_publish`.
 
 **Acceptance test:** Generate an AI draft from an RSS item with no recovered source credit. Verify a warning appears and a manual source-entry form is available; publishing remains enabled for an otherwise approved story. Add a publisher credit manually and verify it appears on WordPress and appropriate social outputs. Publish another approved story with the warning unresolved and verify the choice is logged, without being blocked for missing attribution.
+
+
+## Sources and Incoming Stories — HTML demo parity requirements (October 2026)
+
+**UI reference:** `html demo/Newsroom_Dashboard(2).html`, specifically the Sources and Incoming Stories views. Preserve the newer Next.js/FastAPI/PostgreSQL/Celery source ingestion, attribution, AI drafting, ranking, audit trail and security protections. The original HTML provides the desired editorial layout and interaction model—not the production data layer. Never reintroduce fictional collection, browser-localStorage as canonical storage, simulated publication, or demo-only success messages.
+
+### Sources: centralized Automatic Story Collection settings
+
+Restore the demo's prominent **Automatic Story Collection** panel at the top of the Sources page. It should expose these controls with explicit, documented semantics:
+
+| Control | Desired behavior |
+| --- | --- |
+| Stories per batch | Configure the candidate display limit, 20–50. This is **not** a cap on ingestion/storage and must not fabricate extra candidates. |
+| Default collection interval | Global default for **newly added** sources; source-specific intervals remain editable and take precedence. Do not overwrite existing custom intervals. |
+| Draft language | Global default for new draft creation and AI-generation language; editors can override per story. It must not translate or alter incoming feed contents automatically. |
+| Collection source mode | Supported feeds (RSS/Atom/JSON Feed), permitted website feed discovery, public supported feed APIs and manual references. Surface capabilities honestly; unsupported website extraction/API adapters must be labeled as not available rather than silently enabled. |
+| Preferred categories | Configurable editorial defaults/filter preferences; preserve feed-derived categories and per-source category overrides. Do not mistake filtering for a collector rights override. |
+| Automatic collection | Enable/disable the scheduler at a clear global policy level while respecting per-source activation, permissions, limits and backoff. Changing this must require a real backend setting; do not present a nonfunctional toggle. |
+
+Put editable **per-source overrides** and the live Sources registry below the global panel. Existing source features must stay available: Add Source, Test Source with results, source edit, activate/deactivate, per-source interval, collection health, last success/error, next run, Collect Now and links to discovered feeds. Support a safe **Archive Source** action (with confirmation and reversible restoration where appropriate); preserve stored candidates, original URLs, publisher/source provenance, audit history and existing article credits. Avoid destructive hard deletion of cited source records.
+
+Where a global setting has not yet been implemented in the backend, show it as unavailable/planned until persistence, API contract and tests exist. The `Sources` page is the primary home for collection configuration. News Feeds may show the active batch limit and link to Sources instead of owning a separate competing setting.
+
+### Incoming Stories / News Feeds: restore editorial table workflow
+
+Keep the production route and backend candidate APIs, but redesign the **News Feeds** page using the HTML demo's **Incoming Stories** table layout and straightforward navigation:
+
+- Add the four newsroom summary counters: **Incoming**, **Original Drafts**, **Awaiting Publication**, **Published**. Populate these from real database-backed counts. Never show fabricated totals. Where later publishing/approval infrastructure does not yet exist, display the honest unavailable or zero state with a clear definition.
+- Retain the original table's main columns **Story**, **Category & Tags**, **Users**, **Status**, **Actions**. Augment Story with the publisher, original publication date, feed and source link. Include category and tags visibly; do not imply candidate records have AI-generated tags before a saved draft does. Authors/assignees may be unassigned.
+- Restore horizontal feed/source-filter pills for convenient switching, and keep the current publisher dropdown or searchable selector for large registries.
+- Preserve current production filters: editorial status, category and headline search; preserve pagination/cursors, ranking score, pin/unpin, select, dismiss/restore, evidence/provenance details, and rights notes.
+- Provide a one-click **Edit Story** action. If no draft exists, create it through the existing **idempotent** candidate-to-draft API and open the shared immersive editor; otherwise open its existing saved draft. Never silently replace or duplicate a story. Handle loading, errors and stale data.
+- Add a clear **Refresh Queue** action to fetch actual backend candidates. **Do not** reintroduce the demo's `Collect sample batch` as if it fetched real sources. Direct users to Sources → Collect Now when they want a real collection job; optionally provide an explicitly labeled development-only sample tool isolated from production.
+- Opening AI-derived or candidate-derived drafts must expose editable, persisted **headline, summary, body, category, tags, language, source credits and social caption suggestions**. On applying an AI preview, auto-populate suggested category and tags in the standard story editor; edits survive save/reopen.
+- Maintain source attribution automatically when available and show non-blocking missing-credit warnings. Allow manual publisher name, original URL (optional) and credit note editing. Missing credit alone must **not** block a separately authorized publication; rights and editorial approvals remain independent.
+
+### UX and engineering acceptance criteria
+
+1. A publisher added in Sources is tested, activated and collected using real API/worker execution. A scheduler run respects global defaults and any per-source override.
+2. New candidates appear in Incoming Stories with publisher/date, category, applicable tags, status, and evidence links; filters and source pills select the correct records. The four counters reflect real backend state.
+3. Clicking **Edit Story** for a new candidate creates exactly one draft and opens the shared full-page editor; reopening the same candidate opens the same draft.
+4. AI-generated category and tags populate the metadata area, remain editable and persist through PostgreSQL revision saves and reloads.
+5. Deactivating/archiving a source prevents new collection according to policy without erasing source attribution or previously collected stories.
+6. Missing source attribution is flagged, can be manually amended, and does not automatically disable publishing solely because of that warning.
+7. Run lint, typecheck, frontend build, backend unit/integration tests (including database-backed tests), and verify no regressions in existing ingestion security and AI functionality. Document any unimplemented global setting explicitly.
+
+**Development priority:** match the original demo's editorial usability while preserving the production application's real behavior; never substitute UI-only controls for backend functionality.
