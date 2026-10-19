@@ -1,13 +1,13 @@
 "use client";
 import { useState } from "react";
-import type { Source, SourceTest } from "@/features/feeds/api";
+import type { CollectionSettings, Source, SourceTest } from "@/features/feeds/api";
 import { newsroom } from "@/features/feeds/api";
 import { Field, Feedback, fieldClass } from "@/features/feeds/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-const initial = { publisher: "", url: "", feed_url: "", source_type: "rss", language: "bn", category: "", rights: "metadata_only", extraction_mode: "metadata", polling_interval: 15, active: true, notes: "" };
-export function SourceForm({ source, onSaved, onCancel }: { source?: Source; onSaved: () => void; onCancel: () => void }) {
-  const [form, setForm] = useState(source ? { ...initial, ...source, feed_url: source.feed_url ?? "" } : initial);
+const initial = { publisher: "", url: "", feed_url: "", source_type: "rss", language: "bn", category: "", rights: "metadata_only", extraction_mode: "metadata", polling_interval: 15, active: true, notes: "", draft_language: "" };
+export function SourceForm({ source, defaults, onSaved, onCancel }: { source?: Source; defaults?: CollectionSettings; onSaved: () => void; onCancel: () => void }) {
+  const [form, setForm] = useState(source ? { ...initial, ...source, feed_url: source.feed_url ?? "", draft_language: source.draft_language ?? "" } : { ...initial, polling_interval: defaults?.default_interval ?? initial.polling_interval });
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SourceTest | null>(null);
   const [busy, setBusy] = useState<"test" | "save" | null>(null);
@@ -15,7 +15,7 @@ export function SourceForm({ source, onSaved, onCancel }: { source?: Source; onS
     setForm(previous => ({ ...previous, [key]: value }));
     if (["url", "feed_url", "source_type", "rights", "extraction_mode"].includes(key)) setResult(null);
   }
-  function payload() { return Object.fromEntries(Object.keys(initial).map(key => [key, key === "feed_url" ? form.feed_url || null : form[key as keyof typeof initial]])); }
+  function payload() { return Object.fromEntries(Object.keys(initial).map(key => [key, (key === "feed_url" || key === "draft_language") ? form[key] || null : form[key as keyof typeof initial]])); }
   async function test() {
     setBusy("test"); setError(null);
     try {
@@ -35,7 +35,8 @@ export function SourceForm({ source, onSaved, onCancel }: { source?: Source; onS
       <Field label="Source URL"><input type="url" required maxLength={2048} className={fieldClass} value={form.url} onChange={e => change("url", e.target.value)} placeholder="https://publisher.example/feed" /></Field>
       <Field label="Feed URL (optional)"><input type="url" maxLength={2048} className={fieldClass} value={form.feed_url} onChange={e => change("feed_url", e.target.value)} placeholder="Select a discovered feed or enter its URL" /></Field>
       <Field label="Collection frequency (minutes)"><input type="number" min={5} max={1440} required className={fieldClass} value={form.polling_interval} onChange={e => change("polling_interval", Number(e.target.value))} /></Field>
-      <Field label="Language"><select className={fieldClass} value={form.language} onChange={e => change("language", e.target.value)}><option value="bn">বাংলা · Bengali</option><option value="en">English</option></select></Field>
+      <Field label="Feed language (metadata)"><select className={fieldClass} value={form.language} onChange={e => change("language", e.target.value)}><option value="bn">বাংলা · Bengali</option><option value="en">English</option></select></Field>
+      <Field label="Draft language override"><select className={fieldClass} value={form.draft_language} onChange={e => change("draft_language", e.target.value)}><option value="">Global default</option><option value="bn">Bengali</option><option value="en">English</option></select></Field>
       <Field label="Default category"><input maxLength={100} className={fieldClass} value={form.category} onChange={e => change("category", e.target.value)} placeholder="Used when the feed has no category" /></Field>
       <Field label="Usage / rights"><select className={fieldClass} value={form.rights} onChange={e => change("rights", e.target.value)}><option value="metadata_only">Public feed metadata only</option><option value="unverified">Rights unverified</option><option value="licensed">Licensed</option><option value="owned">BNC-owned</option><option value="prohibited">Collection prohibited</option></select></Field>
       <Field label="Collection mode"><select className={fieldClass} value={form.extraction_mode} onChange={e => change("extraction_mode", e.target.value)}><option value="metadata">Feed metadata</option><option value="reference_only">Reference only · do not fetch</option></select></Field>

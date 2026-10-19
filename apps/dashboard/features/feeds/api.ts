@@ -20,6 +20,7 @@ export type Source = {
   language: string; category: string; rights: string; extraction_mode: string; polling_interval: number;
   active: boolean; notes: string; health: string; last_success: string | null; last_error: string | null;
   next_collection_at: string | null; can_collect: boolean; latest_run: CollectionRun | null;
+  archived_at: string | null; draft_language: "bn" | "en" | null; automatic_enabled: boolean;
 };
 export type SourcePage = { items: Source[]; total: number; next_cursor: string | null };
 export type SourceTest = { supported: boolean; health: string; message: string; feeds: { url: string; title: string }[]; sample?: { title: string; url: string }[] };
@@ -28,11 +29,16 @@ export type Candidate = {
   published_at: string | null; original_url: string; editorial_status: string; pinned: boolean;
   attributions: Provenance[]; score: number; rank_override: number | null; story_id: string | null;
   bangladesh_relevance: number; public_impact: number; corroboration: number; uniqueness: number;
+  draft_title: string | null; draft_category: string | null; tags: string[]; ai_assisted: boolean;
+  assigned_author: { id: string; name: string } | null;
+  sources: { id: string; publisher: string; archived: boolean; active: boolean }[];
 };
+export type CollectionSettings = { candidate_limit: number; default_interval: number; draft_language: "bn" | "en"; source_mode: "all_supported" | "feeds_only"; preferred_categories: string[]; automatic_collection: boolean };
 export type CandidatePage = { items: Candidate[]; total: number; candidate_limit: number; next_cursor: string | null };
 export type Draft = {
   id: string; origin_item_id: string | null; title: string; summary: string; body: string; category: string;
   version: number; status: string; credits: Credit[]; warnings: string[]; provenance: Provenance[];
   language: "bn" | "en"; tags?: string[]; social_captions?: { facebook?: string; instagram?: string };
   ai_job_id?: string; human_review_required?: boolean; claims_to_verify?: string[]; editorial_warnings?: string[];
+  assigned_author?: { id: string; name: string } | null;
 };

@@ -8,8 +8,10 @@ from decimal import Decimal, InvalidOperation
 from fastapi import HTTPException
 from sqlalchemy import Numeric, and_, case, cast, extract, func, or_, select
 
-from app.editorial.models import Story
+from app.auth.models import User
+from app.editorial.models import Story, StoryVersion
 from app.ingestion.models import Feed, FeedEntry, IngestedItem, IngestionSettings, Source
+from app.ingestion.policy import collection_settings
 from app.ingestion.service import aware, now
 
 
@@ -55,7 +57,7 @@ def decode_candidate_cursor(cursor, signature):
 
 
 def encode_candidate_cursor(row, timestamp, signature):
-    item, score = row
+    item, score = row[:2]
     data = {
         "p": item.pinned,
         "s": str(score),
@@ -113,25 +115,70 @@ def attribution_rows(session, item_id):
 
 
 def list_candidates(
-    session, *, status="DISCOVERED", source_id=None, query="", category="", cursor=None
+    session,
+    *,
+    status="DISCOVERED",
+    source_id=None,
+    query="",
+    category="",
+    cursor=None,
+    include_inactive=False,
+    preferred_only=False,
 ):
     signature = hashlib.sha256(
-        json.dumps([status, str(source_id), query, category]).encode()
+        json.dumps(
+            [
+                status,
+                str(source_id),
+                query,
+                category,
+                include_inactive,
+                preferred_only,
+                collection_settings(session).preferred_categories if preferred_only else [],
+            ]
+        ).encode()
     ).hexdigest()[:16]
     timestamp, position = decode_candidate_cursor(cursor, signature)
     settings = session.get(IngestionSettings, 1)
     limit = settings.candidate_limit if settings else 30
-    criteria = [
-        IngestedItem.id.in_(
-            select(FeedEntry.item_id)
-            .join(Feed)
-            .join(Source)
-            .where(
-                Source.active.is_(True),
-                Source.rights != "prohibited",
+    latest = (
+        select(func.max(StoryVersion.version_number))
+        .where(StoryVersion.story_id == Story.id)
+        .correlate(Story)
+        .scalar_subquery()
+    )
+    base = (
+        select(IngestedItem)
+        .outerjoin(Story, Story.origin_item_id == IngestedItem.id)
+        .outerjoin(
+            StoryVersion,
+            and_(StoryVersion.story_id == Story.id, StoryVersion.version_number == latest),
+        )
+        .outerjoin(User, User.id == Story.author_id)
+    )
+    display_category = func.coalesce(
+        StoryVersion.content_json["category"].as_string(), IngestedItem.category
+    )
+    criteria = [IngestedItem.id.in_(select(FeedEntry.item_id).join(Feed).join(Source))]
+    if not include_inactive:
+        criteria.append(
+            IngestedItem.id.in_(
+                select(FeedEntry.item_id)
+                .join(Feed)
+                .join(Source)
+                .where(
+                    Source.active.is_(True),
+                    Source.archived_at.is_(None),
+                    Source.rights != "prohibited",
+                )
             )
         )
-    ]
+    if preferred_only and collection_settings(session).preferred_categories:
+        criteria.append(
+            func.lower(display_category).in_(
+                [c.casefold() for c in collection_settings(session).preferred_categories]
+            )
+        )
     if status != "all":
         criteria.append(IngestedItem.editorial_status == status)
     if source_id:
@@ -141,15 +188,17 @@ def list_candidates(
             )
         )
     if query:
+        pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
         criteria.append(
-            IngestedItem.title.ilike(
-                "%" + query.replace("%", "\\%").replace("_", "\\_") + "%", escape="\\"
+            or_(
+                IngestedItem.title.ilike(pattern, escape="\\"),
+                StoryVersion.title.ilike(pattern, escape="\\"),
             )
         )
     if category:
-        criteria.append(IngestedItem.category == category)
+        criteria.append(or_(IngestedItem.category == category, display_category == category))
     score = score_expression(session, timestamp).label("score")
-    total = session.scalar(select(func.count()).select_from(IngestedItem).where(*criteria)) or 0
+    total = session.scalar(select(func.count()).select_from(base.where(*criteria).subquery())) or 0
     if position:
         pinned, last_score, created, item_id = position
         same_pin = IngestedItem.pinned == pinned
@@ -175,7 +224,7 @@ def list_candidates(
             )
         )
     rows = session.execute(
-        select(IngestedItem, score)
+        base.with_only_columns(IngestedItem, score, Story, StoryVersion, User)
         .where(*criteria)
         .order_by(
             IngestedItem.pinned.desc(),
@@ -192,9 +241,9 @@ def list_candidates(
     )
     rows = rows[:limit]
     result = []
-    for item, rank in rows:
+    for item, rank, story, version, author in rows:
         credits = attribution_rows(session, item.id)
-        story_id = session.scalar(select(Story.id).where(Story.origin_item_id == item.id))
+        story_id = story.id if story else None
         result.append(
             {
                 "id": str(item.id),
@@ -216,6 +265,24 @@ def list_candidates(
                 "corroboration": item.corroboration,
                 "uniqueness": item.uniqueness,
                 "story_id": str(story_id) if story_id else None,
+                "draft_title": version.title if version else None,
+                "draft_category": version.content_json.get("category", "") if version else None,
+                "tags": version.content_json.get("tags", []) if version else [],
+                "ai_assisted": bool(version and version.content_json.get("human_review_required")),
+                "assigned_author": {"id": str(author.id), "name": author.name} if author else None,
+                "sources": [
+                    {
+                        "id": str(source.id),
+                        "publisher": source.publisher,
+                        "archived": bool(source.archived_at),
+                        "active": source.active,
+                    }
+                    for source in session.scalars(
+                        select(Source).where(
+                            Source.id.in_([uuid.UUID(c["source_id"]) for c in credits])
+                        )
+                    )
+                ],
             }
         )
     return {

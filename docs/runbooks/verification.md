@@ -37,3 +37,16 @@ Live HTTP checks cover the Sources, News Feeds, draft, and server proxy routes. 
 - `OPENAI_API_KEY` and `OPENAI_MODEL` are unset in the local backend. No paid OpenAI request was made; live provider output and model quality have not been verified. Configure both server-side to enable live generation. Browser interaction/visual checks are not claimed.
 
 See [AI and Manual Writing](../api/ai-and-manual-writing.md) for the setup and workflow. AI previews do not save or publish automatically; editors confirm applying a preview and explicitly save the reviewed writing.
+
+## Sources and Incoming Stories parity verification
+
+Verified on 19 October 2026:
+
+- **91 backend tests passed**, with PostgreSQL integration tests enabled in isolated schemas. The existing upstream Starlette/httpx deprecation warning remains. A prior overlapping run hit the existing worker-import subprocess timeout; the final complete run passed, including that test.
+- New checks cover persisted collection defaults, preservation of existing intervals and batch settings, per-source/story language overrides, global scheduler pause/mode restrictions, policy changes during fetch, explicit manual collection while paused, and reuse of pending scheduled jobs for an explicit manual request.
+- Archive/restore checks preserve candidates, credits, revisions and original provenance in SQLite and PostgreSQL. Queue checks cover saved category/tags, author identity, source/history filters, preferred categories, idempotent draft reopening and non-blocking missing-credit warnings. Publication summary tests count distinct stored stories across destinations while retaining the unavailable workflow state.
+- Frontend ESLint, TypeScript and the Next.js production build pass. Ruff passes; the additive migration upgraded the local PostgreSQL database and `alembic check` reports no drift. Migration upgrade/downgrade and preservation checks pass.
+- Live Docker HTTP checks pass for Sources, Incoming Stories, Manual Writing, the shared editor, persisted settings, summary and editorial metadata endpoints, saved-headline filtering, reopening an existing revision, API authorization and readiness. A real Celery RSS collection succeeded with **0 new candidates, 14 duplicates, 0 skipped**, preserving deduplication. The worker responds to readiness checks.
+- Browser inventory was empty and the in-app browser was unavailable. No visual or browser-interaction verification is claimed. No paid OpenAI request was made for this change; its provider and model configuration were preserved. Publishing, custom API adapters and full article extraction remain unimplemented.
+
+See [Collection and Incoming Stories](../api/collection-and-incoming-stories.md) for the settings semantics and additional API fields. Production contains no sample collection or simulated publishing.

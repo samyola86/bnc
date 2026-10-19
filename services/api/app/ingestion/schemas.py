@@ -22,6 +22,7 @@ class SourceInput(BaseModel):
     polling_interval: int = Field(default=15, ge=5, le=1440)
     active: bool = True
     notes: str = Field(default="", max_length=4000)
+    draft_language: Literal["bn", "en"] | None = None
 
     @field_validator("url", "feed_url")
     @classmethod
@@ -50,7 +51,29 @@ class TestInput(BaseModel):
 
 
 class QueueSettingsInput(BaseModel):
-    candidate_limit: int = Field(ge=20, le=50)
+    model_config = ConfigDict(extra="forbid")
+    candidate_limit: int | None = Field(default=None, ge=20, le=50)
+    default_interval: int | None = Field(default=None, ge=5, le=1440)
+    draft_language: Literal["bn", "en"] | None = None
+    source_mode: Literal["all_supported", "feeds_only"] | None = None
+    preferred_categories: list[str] | None = Field(default=None, max_length=20)
+    automatic_collection: bool | None = None
+
+    @field_validator("preferred_categories")
+    @classmethod
+    def categories_not_blank(cls, value):
+        if value is not None and any(not v.strip() or len(v) > 100 for v in value):
+            raise ValueError("Categories must have 1–100 characters")
+        return list(dict.fromkeys(v.strip() for v in value)) if value is not None else None
+
+
+class CollectionSettings(BaseModel):
+    candidate_limit: int = 30
+    default_interval: int = 15
+    draft_language: Literal["bn", "en"] = "bn"
+    source_mode: Literal["all_supported", "feeds_only"] = "all_supported"
+    preferred_categories: list[str] = Field(default_factory=list)
+    automatic_collection: bool = True
 
 
 class CandidatePatch(BaseModel):

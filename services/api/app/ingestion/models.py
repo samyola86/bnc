@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, Record
@@ -20,6 +20,8 @@ class Source(Record, Base):
     feed_url: Mapped[str | None] = mapped_column(String(2048))
     category: Mapped[str] = mapped_column(String(100), default="")
     active: Mapped[bool] = mapped_column(default=True)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    draft_language: Mapped[str | None] = mapped_column(String(8))
     extraction_mode: Mapped[str] = mapped_column(String(24), default="metadata")
     polling_interval: Mapped[int] = mapped_column(default=15)
     health: Mapped[str] = mapped_column(String(24), default="UNTESTED")
@@ -114,6 +116,7 @@ class CollectionRun(Record, Base):
 
     source_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sources.id"), index=True)
     status: Mapped[str] = mapped_column(String(24), default="PENDING", index=True)
+    trigger: Mapped[str] = mapped_column(String(16), default="manual")
     message: Mapped[str] = mapped_column(Text, default="Queued for collection")
     inserted: Mapped[int] = mapped_column(default=0)
     duplicates: Mapped[int] = mapped_column(default=0)
@@ -125,7 +128,15 @@ class IngestionSettings(Base):
     __tablename__ = "ingestion_settings"
     __table_args__ = (
         CheckConstraint("candidate_limit BETWEEN 20 AND 50", name="ck_candidate_limit"),
+        CheckConstraint("default_interval BETWEEN 5 AND 1440", name="ck_default_interval"),
+        CheckConstraint("draft_language IN ('bn','en')", name="ck_default_draft_language"),
+        CheckConstraint("source_mode IN ('all_supported','feeds_only')", name="ck_source_mode"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     candidate_limit: Mapped[int] = mapped_column(default=30)
+    default_interval: Mapped[int] = mapped_column(default=15)
+    draft_language: Mapped[str] = mapped_column(String(8), default="bn")
+    source_mode: Mapped[str] = mapped_column(String(24), default="all_supported")
+    preferred_categories: Mapped[list] = mapped_column(JSON, default=list)
+    automatic_collection: Mapped[bool] = mapped_column(default=True)

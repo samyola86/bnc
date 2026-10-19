@@ -11,6 +11,7 @@ from app.editorial.models import AuditEvent
 from app.ingestion.models import CollectionRun, Feed, FeedEntry, IngestedItem, Source
 from app.ingestion.network import SafeFetcher, SourceError
 from app.ingestion.parsing import ParsedFeed, discover_links, parse_feed
+from app.ingestion.policy import scheduled_allowed
 
 
 def now() -> datetime:
@@ -24,6 +25,7 @@ def aware(value: datetime | None) -> datetime | None:
 def collectible(source) -> bool:
     return (
         source.source_type != "manual"
+        and not getattr(source, "archived_at", None)
         and source.extraction_mode == "metadata"
         and source.rights != "prohibited"
     )
@@ -193,6 +195,14 @@ def collect_run(run_id: uuid.UUID, session_factory, fetcher_factory=None) -> dic
             )
             session.commit()
             return {"status": "SKIPPED"}
+        if run.trigger == "scheduled" and not scheduled_allowed(session, source):
+            run.status, run.message, run.finished_at = (
+                "SKIPPED",
+                "Automatic collection is paused or excluded by global source mode",
+                now(),
+            )
+            session.commit()
+            return {"status": "SKIPPED"}
         if source.locked_until and aware(source.locked_until) > now():
             if source.collection_lock_id != run.id:
                 run.status, run.message, run.finished_at = (
@@ -253,6 +263,15 @@ def collect_run(run_id: uuid.UUID, session_factory, fetcher_factory=None) -> dic
             )
             if not source.active or not collectible(source) or source.collection_lock_id != run.id:
                 raise SourceError("Source was disabled or changed while collection was running")
+            if run.trigger == "scheduled" and not scheduled_allowed(session, source):
+                run.status, run.message, run.finished_at = (
+                    "SKIPPED",
+                    "Global collection policy changed while collection was running",
+                    now(),
+                )
+                source.collection_lock_id = source.locked_until = None
+                session.commit()
+                return {"status": "SKIPPED"}
             if any(getattr(source, field) != value for field, value in snapshot.items()):
                 raise SourceError("Source was edited while collection was running; collect again")
             feed = session.scalar(

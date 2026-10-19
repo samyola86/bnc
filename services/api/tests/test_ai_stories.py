@@ -269,6 +269,9 @@ def test_complete_rss_ai_edit_save_workflow(ai, monkeypatch, language):
         {k: v for k, v in c.items() if k != "entry_method"} for c in draft["credits"]
     ]
     assert saved["provenance"] == draft["provenance"]
+    queue = client.get("/api/v1/feeds/items?status=DRAFT").json()["items"][0]
+    assert queue["tags"] == result["tags"] and queue["draft_category"] == result["category"]
+    assert queue["ai_assisted"] is True
     assert client.patch(path, json=save_payload(saved, body="Later human revision")).json()[
         "human_review_required"
     ]

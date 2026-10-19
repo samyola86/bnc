@@ -56,6 +56,14 @@ def test_initial_migration_matches_models_and_downgrades(tmp_path, monkeypatch):
             )
         )
     engine.dispose()
+    command.upgrade(config, "a81b6d2c930f")
+    engine = create_engine(database_url)
+    with engine.begin() as connection:
+        connection.execute(text("UPDATE sources SET polling_interval=47"))
+        connection.execute(
+            text("UPDATE ingestion_settings SET candidate_limit=40 WHERE id=1")
+        )
+    engine.dispose()
     command.upgrade(config, "head")
     engine = create_engine(database_url)
     with engine.connect() as connection:
@@ -64,6 +72,15 @@ def test_initial_migration_matches_models_and_downgrades(tmp_path, monkeypatch):
             text("SELECT url, active, source_type, extraction_mode, notes FROM sources")
         ).one()
         assert tuple(row) == ("https://publisher.example/", 0, "manual", "reference_only", "")
+        assert connection.execute(text("SELECT polling_interval FROM sources")).scalar() == 47
+        assert tuple(
+            connection.execute(
+                text(
+                    "SELECT candidate_limit,default_interval,draft_language,source_mode,"
+                    "preferred_categories,automatic_collection FROM ingestion_settings"
+                )
+            ).one()
+        ) == (40, 15, "bn", "all_supported", "[]", 1)
     engine.dispose()
     command.downgrade(config, "base")
     assert inspect(engine).get_table_names() == ["alembic_version"]

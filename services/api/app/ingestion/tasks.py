@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.db import models  # noqa: F401 - workers need the complete FK metadata too
 from app.db.session import SessionLocal
 from app.ingestion.models import CollectionRun, Source
+from app.ingestion.policy import collection_settings, scheduled_allowed
 from app.ingestion.service import audit, collect_run, collectible, next_collection, now
 from app.workers.celery_app import celery_app
 
@@ -82,10 +83,18 @@ def reserve_due(session) -> list[uuid.UUID]:
         if source.collection_lock_id == run.id:
             source.collection_lock_id = source.locked_until = None
         source.next_collection_at = now()
+    policy = collection_settings(session)
+    if not policy.automatic_collection:
+        session.commit()
+        return []
     sources = session.scalars(
         select(Source)
         .where(
             Source.active.is_(True),
+            Source.archived_at.is_(None),
+            Source.source_type.in_(["rss", "json_feed"])
+            if policy.source_mode == "feeds_only"
+            else Source.source_type != "manual",
             Source.source_type != "manual",
             Source.extraction_mode == "metadata",
             Source.rights != "prohibited",
@@ -97,7 +106,7 @@ def reserve_due(session) -> list[uuid.UUID]:
     ).all()
     ids = []
     for source in sources:
-        if not collectible(source):
+        if not collectible(source) or not scheduled_allowed(session, source):
             continue
         if session.scalar(
             select(CollectionRun.id)
@@ -108,7 +117,7 @@ def reserve_due(session) -> list[uuid.UUID]:
             .limit(1)
         ):
             continue
-        run = CollectionRun(source_id=source.id)
+        run = CollectionRun(source_id=source.id, trigger="scheduled")
         session.add(run)
         session.flush()
         source.next_collection_at = next_collection(source)

@@ -11,6 +11,7 @@ from app.db.session import get_session
 from app.editorial.drafts import create_draft, draft_view, update_draft
 from app.ingestion.candidates import cursor_offset, list_candidates, next_cursor
 from app.ingestion.models import CollectionRun, IngestedItem, IngestionSettings, Source
+from app.ingestion.policy import collection_settings, scheduled_allowed
 from app.ingestion.schemas import (
     CandidatePatch,
     DraftInput,
@@ -19,6 +20,7 @@ from app.ingestion.schemas import (
     TestInput,
 )
 from app.ingestion.service import audit, collectible, now, probe
+from app.ingestion.summary import newsroom_summary
 from app.ingestion.tasks import enqueue
 
 router = APIRouter(dependencies=[Depends(require_editor)], tags=["source newsroom"])
@@ -40,9 +42,11 @@ def source_view(session, source):
         "last_success",
         "last_error",
         "next_collection_at",
+        "archived_at",
     ]
     result = {name: getattr(source, name) for name in fields}
     result["can_collect"] = source.active and collectible(source)
+    result["automatic_enabled"] = result["can_collect"] and scheduled_allowed(session, source)
     result["latest_run"] = run_view(latest) if latest else None
     return result
 
@@ -73,11 +77,18 @@ def get_source(session, source_id, *, lock=False):
 
 
 @router.get("/sources")
-def sources(session: DB, cursor: str | None = Query(None, max_length=100)):
+def sources(
+    session: DB, cursor: str | None = Query(None, max_length=100), include_archived: bool = False
+):
     offset, limit = cursor_offset(cursor), 100
-    total = session.scalar(select(func.count()).select_from(Source)) or 0
+    criteria = [] if include_archived else [Source.archived_at.is_(None)]
+    total = session.scalar(select(func.count()).select_from(Source).where(*criteria)) or 0
     rows = session.scalars(
-        select(Source).order_by(Source.publisher, Source.id).offset(offset).limit(limit)
+        select(Source)
+        .where(*criteria)
+        .order_by(Source.publisher, Source.id)
+        .offset(offset)
+        .limit(limit)
     ).all()
     return {
         "items": [source_view(session, s) for s in rows],
@@ -94,6 +105,8 @@ def test_source(body: TestInput):
 @router.post("/sources", status_code=201)
 def add_source(body: SourceInput, session: DB):
     actor = ensure_editor(session)
+    if "polling_interval" not in body.model_fields_set:
+        body.polling_interval = collection_settings(session).default_interval
     source = Source(**body.model_dump(), homepage=body.url, next_collection_at=now())
     session.add(source)
     session.flush()
@@ -105,6 +118,8 @@ def add_source(body: SourceInput, session: DB):
 @router.patch("/sources/{source_id}")
 def edit_source(source_id: uuid.UUID, body: dict, session: DB):
     source = get_source(session, source_id, lock=True)
+    if source.archived_at:
+        raise HTTPException(409, "Restore the archived source before editing or activating it")
     before = {name: getattr(source, name) for name in SourceInput.model_fields}
     try:
         data = SourceInput.model_validate({**before, **body})
@@ -125,9 +140,33 @@ def edit_source(source_id: uuid.UUID, body: dict, session: DB):
     return source_view(session, source)
 
 
+@router.post("/sources/{source_id}/archive")
+def archive_source(source_id: uuid.UUID, session: DB):
+    source = get_source(session, source_id, lock=True)
+    if not source.archived_at:
+        source.archived_at, source.active, source.next_collection_at = now(), False, None
+        audit(session, "source.archived", source.id, ensure_editor(session))
+        session.commit()
+    return source_view(session, source)
+
+
+@router.post("/sources/{source_id}/restore")
+def restore_source(source_id: uuid.UUID, session: DB):
+    source = get_source(session, source_id, lock=True)
+    if source.archived_at:
+        source.archived_at = None
+        # Restoration keeps collection off until the editor explicitly activates it.
+        source.active, source.next_collection_at = False, None
+        audit(session, "source.restored", source.id, ensure_editor(session))
+        session.commit()
+    return source_view(session, source)
+
+
 @router.post("/sources/{source_id}/test")
 def test_saved_source(source_id: uuid.UUID, session: DB):
     source = get_source(session, source_id)
+    if source.archived_at:
+        raise HTTPException(409, "Restore the archived source before testing it")
     result = probe(source)
     source.last_checked, source.health, source.last_error = (
         now(),
@@ -150,6 +189,17 @@ def queue_source(session, source):
         .limit(1)
     )
     if existing:
+        if existing.status == "PENDING" and existing.trigger == "scheduled":
+            existing.trigger = "manual"
+            audit(
+                session,
+                "source.collection_requested",
+                source.id,
+                ensure_editor(session),
+                run_id=str(existing.id),
+                reused_scheduled_run=True,
+            )
+            session.commit()
         return {"job_id": str(existing.id), "status": existing.status}
     actor = ensure_editor(session)
     run = CollectionRun(source_id=source.id)
@@ -187,26 +237,33 @@ def job(job_id: uuid.UUID, session: DB):
 
 @router.get("/ingestion/settings")
 def settings(session: DB):
-    row = session.get(IngestionSettings, 1)
-    return {"candidate_limit": row.candidate_limit if row else 30}
+    return collection_settings(session).model_dump()
 
 
 @router.patch("/ingestion/settings")
 def edit_settings(body: QueueSettingsInput, session: DB):
+    actor = ensure_editor(session)
+    from app.auth.models import User
+
+    session.scalar(select(User).where(User.id == actor).with_for_update())
     row = session.get(IngestionSettings, 1)
     if not row:
         row = IngestionSettings(id=1)
         session.add(row)
-    row.candidate_limit = body.candidate_limit
+    changes = body.model_dump(exclude_unset=True)
+    if any(value is None for value in changes.values()):
+        raise HTTPException(422, "Collection settings cannot be null")
+    for key, value in changes.items():
+        setattr(row, key, value)
     audit(
         session,
         "candidate_queue.configured",
         uuid.UUID(int=1),
-        ensure_editor(session),
-        candidate_limit=body.candidate_limit,
+        actor,
+        **changes,
     )
     session.commit()
-    return {"candidate_limit": row.candidate_limit}
+    return collection_settings(session).model_dump()
 
 
 @router.get("/feeds/items")
@@ -217,10 +274,24 @@ def candidates(
     query: str = Query("", max_length=200),
     category: str = Query("", max_length=100),
     cursor: str | None = Query(None, max_length=1024),
+    include_inactive: bool = False,
+    preferred_only: bool = False,
 ):
     return list_candidates(
-        session, status=status, source_id=source_id, query=query, category=category, cursor=cursor
+        session,
+        status=status,
+        source_id=source_id,
+        query=query,
+        category=category,
+        cursor=cursor,
+        include_inactive=include_inactive,
+        preferred_only=preferred_only,
     )
+
+
+@router.get("/feeds/summary")
+def feed_summary(session: DB):
+    return newsroom_summary(session)
 
 
 @router.patch("/feeds/items/{item_id}")

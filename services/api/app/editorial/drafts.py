@@ -4,9 +4,11 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.auth.editor import ensure_editor
+from app.auth.models import User
 from app.editorial.models import Story, StorySource, StoryVersion
 from app.ingestion.candidates import attribution_rows
 from app.ingestion.models import IngestedItem, Source
+from app.ingestion.policy import collection_settings
 from app.ingestion.schemas import DraftInput
 from app.ingestion.service import audit, now
 
@@ -63,6 +65,9 @@ def draft_view(session, story_id: uuid.UUID):
         "version": version.version_number,
         "status": story.status,
         "language": story.language,
+        "assigned_author": {"id": str(author.id), "name": author.name}
+        if (author := session.get(User, story.author_id))
+        else None,
         **version.content_json,
         "credits": credits,
         "warnings": credit_warning(credits),
@@ -81,7 +86,12 @@ def create_draft(session, item_id):
     if existing:
         return draft_view(session, existing.id)
     actor = ensure_editor(session)
-    story = Story(origin_item_id=item.id, language=item.language, status="DRAFT", author_id=actor)
+    provenance = attribution_rows(session, item.id)
+    origin = session.get(Source, uuid.UUID(provenance[0]["source_id"])) if provenance else None
+    language = (origin.draft_language if origin else None) or collection_settings(
+        session
+    ).draft_language
+    story = Story(origin_item_id=item.id, language=language, status="DRAFT", author_id=actor)
     session.add(story)
     session.flush()
     # Feed text is evidence, not a BNC article. The editor writes an original body.

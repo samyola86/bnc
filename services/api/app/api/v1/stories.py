@@ -14,6 +14,7 @@ from app.db.session import get_session
 from app.editorial.drafts import draft_view
 from app.editorial.models import Story, StorySource, StoryVersion
 from app.ingestion.candidates import cursor_offset, next_cursor
+from app.ingestion.policy import collection_settings
 from app.ingestion.schemas import DraftInput
 from app.ingestion.service import audit
 
@@ -31,6 +32,8 @@ def create_story(body: ManualInput, session: DB):
     if body.ai_job_id:
         raise HTTPException(422, "Create the story before requesting an AI preview")
     actor = ensure_editor(session)
+    if "language" not in body.model_fields_set:
+        body.language = collection_settings(session).draft_language
     story = Story(language=body.language, status="DRAFT", author_id=actor)
     session.add(story)
     session.flush()

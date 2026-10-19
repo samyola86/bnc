@@ -69,6 +69,8 @@ Missing credits produce a warning and `attribution_blocks_publishing: false`; sa
 
 The shared editor also supports AI preview/apply/save and persistent Manual Writing. See [AI and Manual Writing](ai-and-manual-writing.md) for the additional protected story and AI-job endpoints. Automatic feed collection does not trigger AI generation or publishing.
 
+For the new global collection settings, archive/restore behavior, historical candidate access and editorial table metadata, see [Collection and Incoming Stories](collection-and-incoming-stories.md). Existing endpoint defaults and source rights/security controls remain in effect.
+
 The test suite includes fixtures for RSS, Atom, JSON Feed, discovery, unsupported pages/APIs, malformed XML, access restrictions, SSRF, redirect policy, DNS pinning, body limits, conditional requests, failure backoff, scheduling, ranking, pagination, attribution edits, and immutable revision conflicts. PostgreSQL tests use isolated randomly named schemas for concurrent deduplication, draft creation, revision conflict handling, and scheduler reservations. Worker metadata is also tested in a fresh Python process.
 
 Run the PostgreSQL-inclusive suite inside the running Docker API container:

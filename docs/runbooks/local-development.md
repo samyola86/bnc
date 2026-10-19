@@ -64,3 +64,9 @@ docker compose --env-file .env -f infrastructure/docker-compose.yml down
 ```
 
 Named volumes preserve the database, Redis, and media across restarts. Removing volumes deletes local data. This Compose setup is for development only.
+
+## Sources and Incoming Stories
+
+Sources → Automatic Story Collection persists the display batch limit, new-source frequency default, draft-language default, scheduled source mode, preferred-category filters and global automatic collection toggle. Existing source intervals stay unchanged. Explicit Collect now remains available while automatic collection is paused. Source Archive/Restore retains all candidates and attribution; restored sources stay inactive until activated. See [Collection and Incoming Stories](../api/collection-and-incoming-stories.md) for exact semantics and API compatibility.
+
+The Incoming Stories table browses real candidates and saved draft metadata. Edit Story creates/reopens one draft, and the shared editor provides right-side metadata, preview and a bottom save bar. Publishing counters clearly show their unavailable workflow; no delivery or sample-collection behavior is simulated.
