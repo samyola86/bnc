@@ -110,7 +110,6 @@ services:
       dockerfile: apps/dashboard/Dockerfile
     environment:
       API_INTERNAL_URL: http://api:8000
-      INGESTION_API_TOKEN: ${INGESTION_API_TOKEN:?Set INGESTION_API_TOKEN in .env}
       WATCHPACK_POLLING: "true"
       NEXT_TELEMETRY_DISABLED: "1"
     ports: ["127.0.0.1:3000:3000"]

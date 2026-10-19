@@ -1,0 +1,112 @@
+import { expect, test, type Page } from "@playwright/test";
+import { createHmac } from "node:crypto";
+
+async function signIn(page: Page, username: string) {
+  await page.goto("/login");
+  await page.getByLabel("Email or username").fill(username);
+  await page.getByLabel("Password", { exact: true }).fill("browser-test-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL("http://localhost:3002/");
+}
+
+test("writer readiness highlights, safe saves and independent editor approval", async ({ browser }) => {
+  const writerContext = await browser.newContext();
+  const writer = await writerContext.newPage();
+  await signIn(writer, "browserwriter");
+  await expect(writer.getByRole("link", { name: "User Management", exact: true })).toHaveCount(0);
+  await writer.goto("/manual-writing");
+  await writer.getByLabel("New story headline").fill("Browser verified report");
+  await writer.getByRole("button", { name: "Create saved draft" }).click();
+  await expect(writer.getByRole("heading", { name: "Manual story", exact: true })).toBeVisible();
+  await expect(writer.getByRole("region", { name: "Publishing Readiness" })).toContainText("of 8 complete");
+  await writer.getByRole("button", { name: /Send to publishing/ }).click();
+  await expect(writer.locator('[data-field="body"]')).toHaveAttribute("data-invalid", "true");
+  await expect(writer.locator('[data-field="body"]')).toHaveClass(/border-red-400/);
+  await expect(writer.locator('[data-field="body"] textarea')).toBeFocused();
+  await writer.getByLabel("Story body").fill("Verified original reporting for browser validation.");
+  await expect(writer.locator('[data-field="body"]')).toHaveAttribute("data-invalid", "false");
+  await writer.getByRole("button", { name: "Save revision", exact: true }).first().click();
+  await expect(writer.getByText(/Revision 2/).first()).toBeVisible();
+  await expect(writer.getByLabel("Story body")).toHaveValue("Verified original reporting for browser validation.");
+  await writer.getByLabel("Category", { exact: true }).fill("World");
+  await writer.getByLabel("Tags (comma separated)").fill("News, Verified");
+  await writer.getByLabel("Authors / contributors (comma separated)").fill("Reporter");
+  await writer.getByLabel("Instagram", { exact: true }).check();
+  await expect(writer.getByRole("region", { name: "Publishing Readiness" })).toContainText("of 9 complete");
+  await expect(writer.locator('[data-field="cover_image_id"]')).toHaveAttribute("data-invalid", "true");
+  await writer.getByLabel("Instagram", { exact: true }).uncheck();
+  await writer.getByLabel("WordPress", { exact: true }).check();
+  await expect(writer.getByRole("region", { name: "Publishing Readiness" })).toContainText("8 of 8 complete");
+  await expect(writer.getByText("Missing source credit", { exact: true })).toBeVisible();
+  await writer.getByRole("button", { name: /Send to publishing/ }).click();
+  await expect(writer).toHaveURL("http://localhost:3002/publishing");
+  await writer.getByRole("link", { name: "Open review" }).first().click();
+  await expect(writer).toHaveURL(/\/publishing\/[0-9a-f-]{36}$/);
+  await expect(writer.getByRole("heading", { name: "Review: Browser verified report" })).toBeVisible();
+  await expect(writer.getByRole("button", { name: "Approve revision" })).toHaveCount(0);
+  const reviewURL = writer.url();
+  const editorContext = await browser.newContext();
+  const editor = await editorContext.newPage();
+  await signIn(editor, "browsereditor");
+  await editor.goto(reviewURL);
+  await expect(editor.getByText("Verified original reporting for browser validation.", { exact: true })).toBeVisible();
+  await editor.getByRole("button", { name: "Approve revision" }).click();
+  await editor.getByRole("button", { name: "Authorize READY for delivery" }).click();
+  await expect(editor.getByText(/Exact revision 3 · READY/)).toBeVisible();
+  await expect(editor.getByText("APPROVED · browsereditor", { exact: false })).toBeVisible();
+  await writer.reload();
+  await expect(writer.getByText(/Exact revision 3 · READY/)).toBeVisible();
+  await editor.screenshot({ path: "test-results/editorial-ready.png", fullPage: true });
+  await writerContext.close(); await editorContext.close();
+});
+
+function totp(secret: string) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const bits = [...secret].map(c => alphabet.indexOf(c).toString(2).padStart(5, "0")).join("");
+  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map(byte => parseInt(byte, 2)));
+  const counter = Buffer.alloc(8); counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000)));
+  const hash = createHmac("sha1", key).update(counter).digest();
+  const offset = hash[hash.length - 1] & 15;
+  return ((hash.readUInt32BE(offset) & 0x7fffffff) % 1000000).toString().padStart(6, "0");
+}
+
+test("Superadmin MFA, account lifecycle and assignment screens", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Email or username").fill("browseradmin");
+  await page.getByLabel("Password", { exact: true }).fill("browser-test-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  const link = page.locator('a[href^="otpauth://"]');
+  await expect(link).toBeVisible();
+  const secret = new URL((await link.getAttribute("href"))!).searchParams.get("secret")!;
+  await page.getByLabel("Authenticator code").fill(totp(secret));
+  await page.getByRole("button", { name: "Verify authenticator" }).click();
+  await expect(page).toHaveURL("http://localhost:3002/");
+  await page.getByRole("link", { name: "User Management", exact: true }).click();
+  await page.getByRole("button", { name: "Create user", exact: true }).click();
+  await page.getByLabel("name", { exact: true }).fill("Created browser writer");
+  await page.getByLabel("email", { exact: true }).fill("createdwriter@example.test");
+  await page.getByLabel("username", { exact: true }).fill("createdwriter");
+  await page.getByLabel("Initial password (12+ characters)").fill("browser-test-password");
+  await page.getByRole("button", { name: "Save account" }).click();
+  const row = page.getByRole("row").filter({ hasText: "Created browser writer" });
+  await expect(row).toContainText("CONTENT_WRITER");
+  await page.getByRole("link", { name: "My Tasks", exact: true }).click();
+  await page.getByRole("button", { name: "Assign task", exact: true }).click();
+  await page.getByLabel("title", { exact: true }).fill("Browser assignment test");
+  await page.getByLabel("description", { exact: true }).fill("Verify assignment persistence.");
+  await page.getByLabel("Assigned user", { exact: true }).selectOption({ label: "Created browser writer · CONTENT_WRITER" });
+  await page.getByRole("button", { name: "Save assignment" }).click();
+  await page.getByLabel("View all newsroom workloads").check();
+  await expect(page.getByRole("heading", { name: "Browser assignment test" })).toBeVisible();
+  await page.getByRole("link", { name: "User Management", exact: true }).click();
+  page.once("dialog", dialog => dialog.accept());
+  await row.getByRole("button", { name: "Suspend", exact: true }).click();
+  await expect(row).toContainText("Suspended");
+  page.once("dialog", dialog => dialog.accept());
+  await row.getByRole("button", { name: "Reactivate", exact: true }).click();
+  await expect(row).toContainText("Active");
+  page.once("dialog", dialog => dialog.accept());
+  await row.getByRole("button", { name: "Soft-delete", exact: true }).click();
+  await expect(row).toContainText("Deleted");
+  await page.screenshot({ path: "test-results/account-management.png", fullPage: true });
+});

@@ -101,7 +101,11 @@ def test_postgres_collection_settings_archive_and_editorial_metadata(postgres, m
     monkeypatch.setattr(service, "SafeFetcher", lambda: web)
     monkeypatch.setattr(routes, "enqueue", lambda run_id: bool(collect_run(run_id, factory)))
     try:
-        with TestClient(app, headers={"Authorization": "Bearer test-editor-token"}) as client:
+        from tests.auth_helpers import session_cookie
+
+        with TestClient(
+            app, cookies=session_cookie(factory), headers={"Origin": "http://localhost:3000"}
+        ) as client:
             exercise_settings_and_archive(client, factory, web)
     finally:
         app.dependency_overrides.clear()
@@ -219,7 +223,7 @@ def test_database_summary_counts_and_unavailable_publishing(newsroom):  # noqa: 
     assert after["incoming"]["count"] == 2 and after["original_drafts"]["count"] == 1
     assert not after["published"]["available"] and after["published"]["count"] == 0
     assert after["awaiting_publication"]["available"]
-    assert client.get("/api/v1/feeds/summary", headers={"Authorization": ""}).status_code == 401
+    assert client.get("/api/v1/feeds/summary", headers={"Cookie": ""}).status_code == 401
 
 
 def test_publication_counts_use_distinct_stored_stories(newsroom):  # noqa: F811

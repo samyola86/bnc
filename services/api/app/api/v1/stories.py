@@ -9,7 +9,13 @@ from app.ai.models import AIJob
 from app.ai.schemas import GenerateInput
 from app.ai.service import expire_job, job_view, request_job
 from app.ai.tasks import enqueue
-from app.auth.editor import ensure_editor, require_editor
+from app.auth.editor import (
+    accessible_stories,
+    current_user,
+    ensure_editor,
+    require_editor,
+    story_access,
+)
 from app.db.session import get_session
 from app.editorial.drafts import draft_view
 from app.editorial.models import Story, StorySource, StoryVersion
@@ -32,6 +38,8 @@ def create_story(body: ManualInput, session: DB):
     if body.ai_job_id:
         raise HTTPException(422, "Create the story before requesting an AI preview")
     actor = ensure_editor(session)
+    if current_user(session).role == "CONTENT_WRITER" and body.scheduled_at:
+        raise HTTPException(403, "Only Editors and Superadmins can set publication schedules")
     if "language" not in body.model_fields_set:
         body.language = collection_settings(session).draft_language
     story = Story(language=body.language, status="DRAFT", author_id=actor, type=body.format)
@@ -90,9 +98,9 @@ def stories(
     origin: str = Query("manual", pattern="^(manual|candidate|all)$"),
     cursor: str | None = Query(None, max_length=100),
 ):
-    criteria = []
+    criteria = [accessible_stories(session)]
     if origin != "all":
-        criteria = [
+        criteria += [
             Story.origin_item_id.is_(None)
             if origin == "manual"
             else Story.origin_item_id.is_not(None)
@@ -130,6 +138,7 @@ def stories(
 
 @router.get("/stories/{story_id}/versions")
 def versions(story_id: uuid.UUID, session: DB, cursor: str | None = Query(None, max_length=100)):
+    story_access(session, session.get(Story, story_id))
     draft_view(session, story_id)
     offset, limit = cursor_offset(cursor), 30
     total = session.scalar(
@@ -159,6 +168,7 @@ def versions(story_id: uuid.UUID, session: DB, cursor: str | None = Query(None, 
 
 @router.post("/stories/{story_id}/ai-draft", status_code=202)
 def generate_story(story_id: uuid.UUID, body: GenerateInput, session: DB):
+    story_access(session, session.get(Story, story_id), write=True)
     job = request_job(session, story_id, body)
     if not enqueue(job.id):
         raise HTTPException(
@@ -169,6 +179,7 @@ def generate_story(story_id: uuid.UUID, body: GenerateInput, session: DB):
 
 @router.get("/stories/{story_id}/ai-jobs")
 def story_jobs(story_id: uuid.UUID, session: DB):
+    story_access(session, session.get(Story, story_id))
     draft_view(session, story_id)
     jobs = session.scalars(
         select(AIJob).where(AIJob.story_id == story_id).order_by(AIJob.created_at.desc()).limit(10)
@@ -184,6 +195,7 @@ def ai_job(job_id: uuid.UUID, session: DB):
     job = session.get(AIJob, job_id)
     if not job:
         raise HTTPException(404, "AI job not found")
+    story_access(session, session.get(Story, job.story_id))
     expire_job(job)
     session.commit()
     return job_view(job)

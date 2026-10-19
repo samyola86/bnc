@@ -10,7 +10,8 @@ const routes: Record<string, RegExp[]> = {
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const path = (await context.params).path.join("/");
   const extra = request.method === "GET" ? /^(publishing\/queue|media\/[0-9a-fA-F-]{36})$/ : request.method === "POST" ? /^(media|stories\/[0-9a-fA-F-]{36}\/queue|publishing\/queue\/[0-9a-fA-F-]{36}\/cancel)$/ : null;
-  if (!extra?.test(path) && !routes[request.method]?.some(pattern => pattern.test(path))) {
+  const accounts = /^(auth\/(login|logout|logout-all|me|renew|forgot-password|reset-password|mfa\/setup|mfa\/verify)|admin\/(users|audit|system-status|users\/[0-9a-fA-F-]{36}(\/(status|reset-password))?)|tasks(\/[0-9a-fA-F-]{36}(\/(status|history))?)?|publishing\/requests\/[0-9a-fA-F-]{36}|stories\/[0-9a-fA-F-]{36}\/(readiness|submit-review|approve|request-changes|reject|ready))$/;
+  if (!accounts.test(path) && !extra?.test(path) && !routes[request.method]?.some(pattern => pattern.test(path))) {
     return Response.json({ error: { message: "Route not found" } }, { status: 404 });
   }
   if (request.method !== "GET") {
@@ -22,8 +23,6 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
       return Response.json({ error: { message: "Use application/json" } }, { status: 415 });
     }
   }
-  const token = process.env.INGESTION_API_TOKEN;
-  if (!token) return Response.json({ error: { message: "The editor service credential is not configured" } }, { status: 503 });
   let body: string | undefined;
   if (request.method !== "GET" && request.body) {
     const reader = request.body.getReader();
@@ -44,9 +43,11 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   try {
     const response = await fetch(`${process.env.API_INTERNAL_URL ?? "http://localhost:8000"}/api/v1/${path}${request.nextUrl.search}`, {
       method: request.method, body, cache: "no-store", signal: AbortSignal.timeout(60000),
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: { Cookie: request.headers.get("cookie") ?? "", Origin: request.headers.get("origin") ?? "", "Content-Type": "application/json" },
     });
-    return new Response(await response.arrayBuffer(), { status: response.status, headers: { "Content-Type": response.headers.get("content-type") ?? "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
+    const headers = new Headers({ "Content-Type": response.headers.get("content-type") ?? "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+    for (const cookie of response.headers.getSetCookie()) headers.append("Set-Cookie", cookie);
+    return new Response(await response.arrayBuffer(), { status: response.status, headers });
   } catch {
     return Response.json({ error: { message: "The editorial API did not respond. Check the API and worker services" } }, { status: 503 });
   }

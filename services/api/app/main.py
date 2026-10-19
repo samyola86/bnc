@@ -12,9 +12,12 @@ from app.api.health import router as health_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.ingestion import router as ingestion_router
 from app.api.v1.stories import router as stories_router
+from app.auth.routes import admin as admin_router
+from app.auth.routes import router as auth_router
 from app.config import get_settings
 from app.media.routes import router as media_router
 from app.publishing.queue import router as publishing_router
+from app.tasks.routes import router as tasks_router
 
 logger = logging.getLogger("bnc.api")
 app = FastAPI(title="BNC Newsroom API", version="0.1.0")
@@ -35,13 +38,14 @@ async def trace_request(request: Request, call_next):
     return response
 
 
-def error(request: Request, code: str, message: str, status: int):
+def error(request: Request, code: str, message: str, status: int, fields=None):
     return JSONResponse(
         status_code=status,
         content={
             "error": {
                 "code": code,
                 "message": message,
+                "fields": fields or {},
                 "request_id": getattr(request.state, "request_id", None),
             }
         },
@@ -50,12 +54,21 @@ def error(request: Request, code: str, message: str, status: int):
 
 @app.exception_handler(HTTPException)
 async def http_error(request: Request, exc: HTTPException):
+    if isinstance(exc.detail, dict):
+        return error(
+            request,
+            f"HTTP_{exc.status_code}",
+            exc.detail["message"],
+            exc.status_code,
+            exc.detail.get("fields"),
+        )
     return error(request, f"HTTP_{exc.status_code}", str(exc.detail), exc.status_code)
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_error(request: Request, exc: RequestValidationError):
-    return error(request, "VALIDATION_ERROR", "Invalid request", 422)
+    fields = {str(item["loc"][-1]): item["msg"] for item in exc.errors()}
+    return error(request, "VALIDATION_ERROR", "Invalid request", 422, fields)
 
 
 @app.exception_handler(SQLAlchemyError)
@@ -70,3 +83,6 @@ app.include_router(ingestion_router, prefix="/api/v1")
 app.include_router(stories_router, prefix="/api/v1")
 app.include_router(media_router, prefix="/api/v1")
 app.include_router(publishing_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
+app.include_router(tasks_router, prefix="/api/v1")

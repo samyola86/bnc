@@ -15,7 +15,7 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import CreateSchema, DropSchema
 
-from app.auth.editor import ensure_editor
+from app.auth.editor import EDITOR_ID
 from app.db.base import Base
 from app.editorial.drafts import create_draft, update_draft
 from app.editorial.models import Story, StoryVersion
@@ -24,6 +24,7 @@ from app.ingestion.models import CollectionRun, FeedEntry, IngestedItem, Source
 from app.ingestion.schemas import DraftInput
 from app.ingestion.service import collect_run, now
 from app.ingestion.tasks import reserve_due
+from tests.auth_helpers import seed_actor
 from tests.test_ingestion import rss
 
 
@@ -40,7 +41,10 @@ def postgres():
         url, connect_args={"options": f"-csearch_path={schema}", "connect_timeout": 10}
     )
     Base.metadata.create_all(engine)
-    factory = sessionmaker(bind=engine)
+    factory = sessionmaker(bind=engine, info={"actor_id": EDITOR_ID})
+    with factory() as identity_session:
+        seed_actor(identity_session)
+        identity_session.commit()
     try:
         yield factory
     finally:
@@ -83,11 +87,12 @@ def test_concurrent_collections_preserve_one_candidate_and_all_attributions(post
         page = list_candidates(session)
         assert page["total"] == 1 and len(page["items"][0]["attributions"]) == 2
         item_id = session.scalar(select(IngestedItem.id))
-        ensure_editor(session)
+        seed_actor(session)
         session.commit()
 
     def draft():
         with factory() as session:
+            seed_actor(session)
             return create_draft(session, item_id)
 
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -96,6 +101,7 @@ def test_concurrent_collections_preserve_one_candidate_and_all_attributions(post
 
     def edit():
         with factory() as session:
+            seed_actor(session)
             try:
                 update_draft(
                     session,
@@ -145,6 +151,7 @@ def test_parallel_scheduler_ticks_reserve_a_source_once(postgres):
 
     def reserve():
         with factory() as session:
+            seed_actor(session)
             return reserve_due(session)
 
     with ThreadPoolExecutor(max_workers=2) as pool:

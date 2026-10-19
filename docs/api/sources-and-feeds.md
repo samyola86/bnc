@@ -14,12 +14,11 @@ Every source has publisher, URL, optional feed URL, language, default category, 
 
 Test Source can run before saving a source. Valid tests show discovered feed choices and up to three sample headlines. Saving does not require a successful test: unsupported references remain manageable with visible errors. A website without an advertised supported feed is not scraped.
 
-## Local editor access
+## Account authorization
 
-All endpoints below require `Authorization: Bearer <INGESTION_API_TOKEN>`. The token stays in the API/Next.js server environment. The localhost dashboard uses a same-origin, allowlisted Next.js proxy at `/api/newsroom/*`; it never includes the token in browser bundles. Mutation requests to that proxy require a matching `Origin` and JSON content type.
+All endpoints below require an individual account session. Source creation, editing, archive/restore, testing, manual collection, refresh and global collection mutations require SUPERADMIN. Authenticated users can read publisher/collection metadata to filter incoming feeds; this grants no source-management permission. The Next.js same-origin proxy forwards the HttpOnly cookie and never substitutes a legacy service token. Unsafe requests also require the exact configured Origin and JSON content type. See [Authentication and RBAC](authentication-and-rbac.md).
 
-The credential maps to an active local source editor, and mutations create audit events. A disabled identity or a non-editor role is rejected. This is a development editor boundary, not a per-user session/MFA implementation. Do not expose this local dashboard as a shared authenticated newsroom until user sessions are implemented.
-
+Writers can retrieve/edit only stories they own or are explicitly assigned to. Another writer's private saved headline/tags/byline are excluded from incoming-feed joins, and reopening their draft is denied independently by FastAPI. Source provenance and collection scheduling remain unchanged.
 ## API routes
 
 All backend paths are prefixed with `/api/v1`.

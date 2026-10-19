@@ -11,13 +11,13 @@ from app.ai import tasks
 from app.ai.models import AIJob
 from app.ai.schemas import GenerateInput
 from app.ai.service import request_job
-from app.auth.editor import ensure_editor
 from app.config import get_settings
 from app.db.session import get_session
 from app.editorial.drafts import draft_view, update_draft
 from app.editorial.models import StoryVersion
 from app.ingestion.schemas import DraftInput
 from app.main import app
+from tests.auth_helpers import session_cookie
 from tests.test_ai_stories import generated, save_payload
 from tests.test_ingestion_postgres import postgres  # noqa: F401
 
@@ -34,7 +34,9 @@ def test_manual_ai_persistence_and_parallel_revision_saves(postgres, monkeypatch
     monkeypatch.setattr(get_settings(), "openai_api_key", "test-not-a-real-key")
     monkeypatch.setattr(get_settings(), "openai_model", "test-model")
     try:
-        with TestClient(app, headers={"Authorization": "Bearer test-editor-token"}) as client:
+        with TestClient(
+            app, cookies=session_cookie(factory), headers={"Origin": "http://localhost:3000"}
+        ) as client:
             response = client.post(
                 "/api/v1/stories", json={"title": "Independent report", "body": "Editor writing"}
             )
@@ -93,7 +95,6 @@ def test_parallel_ai_requests_reserve_one_job(postgres, monkeypatch):  # noqa: F
     monkeypatch.setattr(get_settings(), "openai_api_key", "test-not-a-real-key")
     monkeypatch.setattr(get_settings(), "openai_model", "test-model")
     with factory() as session:
-        ensure_editor(session)
         session.commit()
         story = create_story(ManualInput(title="Parallel AI"), session)
 

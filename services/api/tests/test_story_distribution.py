@@ -68,15 +68,17 @@ def test_queue_schedule_idempotency_and_revision_invalidation(newsroom):  # noqa
     draft = story(client, scheduled_at=scheduled)
     path = f"/api/v1/stories/{draft['id']}"
     result = client.post(path + "/queue", json={"base_version": 1})
-    assert result.status_code == 201 and result.json()["status"] == "SCHEDULED"
+    assert result.status_code == 201 and result.json()["status"] == "IN_REVIEW"
     assert client.post(path + "/queue", json={"base_version": 1}).json() == result.json()
     entry = client.get("/api/v1/publishing/queue").json()["items"][0]
     assert entry["destinations"] == ["wordpress", "facebook"]
     assert datetime.fromisoformat(entry["scheduled_at"]).replace(tzinfo=UTC) == (
         datetime.fromisoformat(scheduled)
     )
-    assert "approval" in entry["delivery_status"]
+    assert "not enabled" in entry["delivery_status"]
     assert client.get("/api/v1/feeds/summary").json()["awaiting_publication"]["count"] == 1
+    assert client.patch(path, json=save_payload(draft)).status_code == 409
+    assert client.post(f"/api/v1/publishing/queue/{result.json()['id']}/cancel").status_code == 200
     assert (
         client.patch(
             path,
@@ -175,6 +177,8 @@ def test_private_image_upload_roundtrip_and_revision_reference(newsroom, monkeyp
     path = f"/api/v1/stories/{draft['id']}"
     assert client.get(path).json()["cover_image_id"] == image_id
     assert client.post(path + "/queue", json={"base_version": 1}).status_code == 201
+    request_id = client.get("/api/v1/publishing/queue").json()["items"][0]["id"]
+    assert client.post(f"/api/v1/publishing/queue/{request_id}/cancel").status_code == 200
     assert (
         client.patch(path, json=save_payload(draft, cover_image_id=None)).json()["cover_image_id"]
         is None

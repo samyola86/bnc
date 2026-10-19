@@ -1,12 +1,14 @@
 # AI drafts and persistent Manual Writing
 
-Both workflows use `stories`, immutable `story_versions`, and version-specific `story_sources` in PostgreSQL. Candidate provenance remains in the original feed records; there is no separate manual editorial system. No publishing, automatic review, or approval action is introduced.
+**19 October 2026 update:** Individual account sessions and the three-role policy supersede the earlier shared-editor authorization described below. Send to Publishing now submits for exact-revision review; approval and READY authorization are implemented, while external delivery remains disabled. See [Authentication and RBAC](authentication-and-rbac.md), [Editorial approval](editorial-approval.md) and [Task assignment](task-assignment.md).
+
+Both workflows use `stories`, immutable `story_versions`, and version-specific `story_sources` in PostgreSQL. Candidate provenance remains in the original feed records; there is no separate manual editorial system. AI generation never automatically submits, approves or publishes a story.
 
 ## Configure and run
 
 Keep `OPENAI_API_KEY` and `OPENAI_MODEL` in the root, ignored `.env` or the backend's deployment secret environment. Choose a model available to your account that supports the Responses API and Structured Outputs. Both settings are required; blank settings disable generation with a clear 503 error. Never put them in `NEXT_PUBLIC_*`, frontend environment files, browser code, or Git.
 
-Compose already passes the root environment to the API and worker, while the dashboard receives only its existing editor credential and API address. After changing backend environment settings:
+Compose already passes the root environment to the API and worker, while the dashboard receives the API address and forwards individual session cookies. After changing backend environment settings:
 
 ```powershell
 docker compose --env-file .env -f infrastructure/docker-compose.yml up -d --build
@@ -27,7 +29,7 @@ Save requests carry `base_version`. A stale save or AI preview based on an older
 
 ## Protected API
 
-All paths below are under `/api/v1` and require the existing local editor bearer credential. The browser uses the same-origin allowlisted `/api/newsroom` proxy; credentials stay server-side. This remains a local development editor boundary, with per-user sessions/MFA still planned.
+All paths below are under `/api/v1` and require an individual account session. The browser uses the same-origin allowlisted `/api/newsroom` proxy. Writers are limited to owned/assigned stories; generation is attributed and rate-limited to the authenticated account. Backend source/provider credentials stay server-side.
 
 | Method | Path | Behavior |
 | --- | --- | --- |

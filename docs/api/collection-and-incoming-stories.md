@@ -1,5 +1,7 @@
 # Collection settings and Incoming Stories
 
+**19 October 2026 update:** Individual account sessions and the three-role policy supersede the earlier shared-editor authorization described below. Send to Publishing now submits for exact-revision review; approval and READY authorization are implemented, while external delivery remains disabled. See [Authentication and RBAC](authentication-and-rbac.md), [Editorial approval](editorial-approval.md) and [Task assignment](task-assignment.md).
+
 This implements the Sources/Incoming Stories layout from `html demo/Newsroom_Dashboard(2).html` using real PostgreSQL records and the existing FastAPI/Celery workflows. The HTML remains a visual/workflow reference; production never uses its fictional stories, sample collection, browser persistence, or publishing simulation.
 
 ## Automatic Story Collection
@@ -23,7 +25,7 @@ Website support means discovery of advertised public feeds only. Public APIs mus
 
 ## Archive and restore
 
-Authenticated editor actions:
+Authenticated Superadmin actions:
 
 - `POST /api/v1/sources/{id}/archive`: idempotently archive, deactivate and clear the next scheduled run. The UI asks for confirmation. No source, candidate, feed occurrence, credit, revision, or audit record is deleted. A running fetch cannot commit metadata after its source is archived.
 - `POST /api/v1/sources/{id}/restore`: idempotently restore the registry entry, keeping it inactive until explicitly activated. Archived sources cannot be edited, activated, tested or collected before restoration.
@@ -41,7 +43,7 @@ Refresh Queue fetches actual backend data and returns to the first batch. It doe
 
 Edit Story opens an existing saved draft or invokes the existing idempotent `POST /feeds/items/{id}/draft` and opens the shared full-page editor. PostgreSQL locking and the unique origin constraint still prevent duplicate drafts. Editor metadata is on the right, writing is wide, Preview displays the current unsaved text and credits safely, and a bottom action bar saves revisions. Preview never publishes or overwrites state. Existing AI apply/confirmation/save behavior populates headline, summary, body, category, tags, language and captions without replacing the provider/model implementation.
 
-Sources & Credits remain editable, with publisher, optional URL, attribution notes and original-reporting flags. Missing credits warn without preventing save; `attribution_blocks_publishing` stays false. Publishing/approval integrations are still outside this feature.
+Sources & Credits remain editable, with publisher, optional URL, attribution notes and original-reporting flags. Missing credits warn without preventing save; `attribution_blocks_publishing` stays false. The separate editorial workflow now implements submission, exact-revision approval and READY; external delivery remains outside this feature.
 
 ## Summary counts
 
@@ -49,10 +51,10 @@ Sources & Credits remain editable, with publisher, optional URL, attribution not
 
 - **Incoming:** stored DISCOVERED and SELECTED candidates, including inactive/archived source history.
 - **Original Drafts:** independently authored stories in DRAFT or CHANGES_REQUESTED.
-- **Awaiting Publication:** distinct stories with stored PENDING, SCHEDULED, RUNNING or RETRYABLE_FAILED publication records.
+- **Awaiting Publication:** distinct accessible stories with active editorial requests or stored PENDING, SCHEDULED, RUNNING or RETRYABLE_FAILED delivery records.
 - **Published:** distinct stories with stored CONFIRMED publication records, counted once across destinations.
 
-The publication counters include their stored count but return `available=false`: the dashboard publishing workflow has not been implemented. The UI shows Unavailable, the recorded count and its explanation. A zero is never presented as proof that a functioning publisher ran. Failed count requests also show an unavailable/error state.
+Awaiting Publication now returns `available=true` for actual review/queue counts. Published still returns `available=false` because external delivery has not been implemented; it shows its recorded count and explanation. A zero is never presented as proof that a functioning publisher ran. Failed count requests also show an unavailable/error state.
 
 ## Verification
 

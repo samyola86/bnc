@@ -6,6 +6,9 @@ from app.publishing.models import Publication, PublishingRequest
 
 
 def newsroom_summary(session):
+    from app.auth.editor import accessible_stories
+
+    access = accessible_stories(session) if session.info.get("actor_id") else True
     incoming = (
         session.scalar(
             select(func.count())
@@ -18,7 +21,11 @@ def newsroom_summary(session):
         session.scalar(
             select(func.count())
             .select_from(Story)
-            .where(Story.origin_item_id.is_(None), Story.status.in_(["DRAFT", "CHANGES_REQUESTED"]))
+            .where(
+                Story.origin_item_id.is_(None),
+                Story.status.in_(["DRAFT", "CHANGES_REQUESTED"]),
+                access,
+            )
         )
         or 0
     )
@@ -29,7 +36,8 @@ def newsroom_summary(session):
                 select(func.count(func.distinct(StoryVersion.story_id)))
                 .select_from(Publication)
                 .join(StoryVersion, Publication.approved_version_id == StoryVersion.id)
-                .where(Publication.status.in_(states))
+                .join(Story, Story.id == StoryVersion.story_id)
+                .where(Publication.status.in_(states), access)
             )
             or 0
         )
@@ -37,9 +45,19 @@ def newsroom_summary(session):
     awaiting = (
         select(StoryVersion.story_id)
         .join(Publication, Publication.approved_version_id == StoryVersion.id)
-        .where(Publication.status.in_(["PENDING", "SCHEDULED", "RUNNING", "RETRYABLE_FAILED"]))
+        .join(Story, Story.id == StoryVersion.story_id)
+        .where(
+            Publication.status.in_(["PENDING", "SCHEDULED", "RUNNING", "RETRYABLE_FAILED"]), access
+        )
     )
-    queued = select(PublishingRequest.story_id).where(PublishingRequest.status != "CANCELLED")
+    queued = (
+        select(PublishingRequest.story_id)
+        .join(Story, Story.id == PublishingRequest.story_id)
+        .where(
+            access,
+            PublishingRequest.status.in_(["QUEUED", "SCHEDULED", "IN_REVIEW", "APPROVED", "READY"]),
+        )
+    )
     awaiting_count = session.scalar(
         select(func.count()).select_from(awaiting.union(queued).subquery())
     )

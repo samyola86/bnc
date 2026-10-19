@@ -18,6 +18,16 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = ""
     ai_hourly_limit: int = 20
+    auth_cookie_secure: bool = True
+    auth_origin: str = "http://localhost:3000"
+    auth_encryption_key: str = ""
+    auth_session_hours: int = 8
+    auth_require_editor_mfa: bool = False
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
 
 
 @lru_cache

@@ -4,7 +4,7 @@ export async function newsroom<T>(path: string, options?: { method: string; body
     body: options ? JSON.stringify(options.body ?? {}) : undefined,
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message ?? "The newsroom request failed");
+  if (!response.ok) throw Object.assign(new Error(data.error?.message ?? "The newsroom request failed"), { fields: data.error?.fields ?? {}, status: response.status });
   return data as T;
 }
 
@@ -25,6 +25,7 @@ export type Source = {
 export type SourcePage = { items: Source[]; total: number; next_cursor: string | null };
 export type SourceTest = { supported: boolean; health: string; message: string; feeds: { url: string; title: string }[]; sample?: { title: string; url: string }[] };
 export type Candidate = {
+  can_edit?: boolean;
   id: string; title: string; excerpt: string; publisher: string; category: string; author: string;
   published_at: string | null; original_url: string; editorial_status: string; pinned: boolean;
   attributions: Provenance[]; score: number; rank_override: number | null; story_id: string | null;
@@ -41,6 +42,7 @@ export type Draft = {
   language: "bn" | "en"; tags?: string[]; social_captions?: { facebook?: string; instagram?: string };
   ai_job_id?: string; human_review_required?: boolean; claims_to_verify?: string[]; editorial_warnings?: string[];
   assigned_author?: { id: string; name: string } | null;
+  last_editor?: { id: string; name: string } | null; version_id?: string;
   format?: "article" | "news_bite"; contributors?: string[]; cover_image_id?: string | null;
   image_alt?: string; image_caption?: string; reporting_notes?: string;
   destinations?: ("wordpress" | "facebook" | "instagram" | "linkedin" | "x")[];

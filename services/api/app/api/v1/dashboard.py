@@ -5,11 +5,12 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.auth.editor import accessible_stories, require_editor
 from app.db.session import get_session
 from app.editorial.models import Story
 from app.publishing.models import Publication
 
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+router = APIRouter(prefix="/dashboard", tags=["dashboard"], dependencies=[Depends(require_editor)])
 
 
 class Overview(BaseModel):
@@ -22,7 +23,7 @@ class Overview(BaseModel):
 @router.get("/overview", response_model=Overview)
 def overview(session: Annotated[Session, Depends(get_session)]) -> Overview:
     def story_count(status: str | None = None) -> int:
-        query = select(func.count()).select_from(Story)
+        query = select(func.count()).select_from(Story).where(accessible_stories(session))
         if status:
             query = query.where(Story.status == status)
         return session.scalar(query) or 0

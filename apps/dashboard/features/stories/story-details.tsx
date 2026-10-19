@@ -1,4 +1,5 @@
 "use client";
+import { useSession } from "../accounts/session";
 import { useState } from "react";
 import { Draft, newsroom } from "../feeds/api";
 import { Field, fieldClass } from "../feeds/shared";
@@ -52,7 +53,7 @@ export function CoverImage({ value, onChange, onUploading }: Props & { onUploadi
       <img className="max-h-96 w-full rounded-lg object-contain" src={`/api/newsroom/media/${value.cover_image_id}`} alt={value.image_alt} />
       <Button type="button" variant="outline" disabled={uploading} onClick={() => onChange({ ...value, cover_image_id: null })}>Remove image</Button>
     </> : <p className="text-sm text-muted-foreground">Add a cover image to your article or news bite.</p>}
-    <Field label={uploading ? "Uploading image…" : "Upload / replace image"}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={e => { void upload(e.target.files?.[0]); e.target.value = ""; }} className={fieldClass} /></Field>
+    <Field validationKey="cover_image_id" label={uploading ? "Uploading image…" : "Upload / replace image"}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={e => { void upload(e.target.files?.[0]); e.target.value = ""; }} className={fieldClass} /></Field>
     <p className="text-xs text-muted-foreground">JPG, PNG, WebP or GIF · up to 3 MB. Save the revision to attach the image.</p>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     <Field label="Image alt text"><input maxLength={1000} className={fieldClass} value={value.image_alt} onChange={e => onChange({ ...value, image_alt: e.target.value })} /></Field>
@@ -60,14 +61,15 @@ export function CoverImage({ value, onChange, onUploading }: Props & { onUploadi
   </CardContent></Card>;
 }
 export function DistributionDetails({ value, onChange }: Props) {
+  const { user } = useSession();
   return <Card><CardHeader><CardTitle>Format & publishing</CardTitle></CardHeader><CardContent className="space-y-5">
-    <Field label="Format"><select className={fieldClass} value={value.format} onChange={e => onChange({ ...value, format: e.target.value as StoryDetails["format"] })}><option value="article">Article</option><option value="news_bite">News bite</option></select></Field>
-    <Field label="Authors / contributors (comma separated)"><input maxLength={4000} className={fieldClass} value={value.contributors} onChange={e => onChange({ ...value, contributors: e.target.value })} placeholder="Sam, Nadia" /></Field>
+    <Field label="Format" validationKey="format"><select className={fieldClass} value={value.format} onChange={e => onChange({ ...value, format: e.target.value as StoryDetails["format"] })}><option value="article">Article</option><option value="news_bite">News bite</option></select></Field>
+    <Field label="Authors / contributors (comma separated)" validationKey="contributors"><input maxLength={4000} className={fieldClass} value={value.contributors} onChange={e => onChange({ ...value, contributors: e.target.value })} placeholder="Sam, Nadia" /></Field>
     <Field label="Source / reporting notes"><textarea rows={4} maxLength={10000} className={fieldClass} value={value.reporting_notes} onChange={e => onChange({ ...value, reporting_notes: e.target.value })} /></Field>
-    <fieldset className="space-y-3"><legend className="mb-3 text-sm font-medium">Publishing destinations</legend>{(Object.entries(platforms) as [Platform, string][]).map(([key, label]) => <label key={key} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.destinations.includes(key)} onChange={e => onChange({ ...value, destinations: e.target.checked ? [...value.destinations, key] : value.destinations.filter(p => p !== key) })} />{label}</label>)}</fieldset>
+    <Field group label="Publishing destinations" validationKey="destinations"><fieldset className="space-y-3"><legend className="mb-3 text-sm font-medium">Publishing destinations</legend>{(Object.entries(platforms) as [Platform, string][]).map(([key, label]) => <label key={key} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.destinations.includes(key)} onChange={e => onChange({ ...value, destinations: e.target.checked ? [...value.destinations, key] : value.destinations.filter(p => p !== key) })} />{label}</label>)}</fieldset></Field>
     <Field label="Default social caption"><textarea rows={4} maxLength={5000} className={fieldClass} value={value.social_caption} onChange={e => onChange({ ...value, social_caption: e.target.value })} /></Field>
     <p className="text-xs leading-5 text-muted-foreground">Facebook and Instagram captions below override this default. WordPress uses the full story.</p>
-    <Field label="Schedule · Dhaka time (UTC+06:00)"><input type="datetime-local" className={fieldClass} value={value.schedule} onChange={e => onChange({ ...value, schedule: e.target.value })} /></Field>
+    {user?.role !== "CONTENT_WRITER" && <Field validationKey="scheduled_at" label="Schedule · Dhaka time (UTC+06:00)"><input type="datetime-local" className={fieldClass} value={value.schedule} onChange={e => onChange({ ...value, schedule: e.target.value })} /></Field>}
     {value.schedule && <Button type="button" variant="ghost" onClick={() => onChange({ ...value, schedule: "" })}>Clear schedule</Button>}
     <p className="text-xs leading-5 text-muted-foreground">Leave the schedule empty for the immediate queue. Sending requires content, category, tags and contributors. Delivery awaits editorial approval and connected platform accounts.</p>
   </CardContent></Card>;

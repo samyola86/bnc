@@ -82,12 +82,11 @@ Primary navigation:
 
 | Role | Permissions |
 |---|---|
-| Administrator | Users, security, configuration, integration connections |
-| Editor-in-Chief | Final approval, corrections, retractions, priority publication |
-| Editor | Assign, edit, review and approve within policy |
-| Journalist | Draft and edit assigned stories, submit for review |
-| Social Media Editor | Prepare platform variants, publish approved stories |
-| Analyst / Viewer | Read reporting and analytics within permissions |
+| SUPERADMIN | Full newsroom access; accounts/roles/status, assignments, sources, configuration and audit; explicit audited self-approval exceptions |
+| EDITOR | Write/generate, review others' submitted revisions, approve/request changes/reject, schedule and authorize approved revisions for READY; no account/system administration |
+| CONTENT_WRITER | Write/generate own or explicitly assigned drafts, media/credits/bylines, assigned tasks, submit and revise; no approval, scheduling or delivery authorization |
+
+**Authoritative policy (19 October 2026):** these are the only three operational roles. The earlier Administrator, Editor-in-Chief, Journalist, Social Media Editor and Analyst/Viewer role proposal is historical and superseded. Individual server-side sessions replace the shared development editor token. Existing shared identities remain inactive Content Writers with historical foreign keys preserved, without automatically granting account access. See [Authentication and RBAC](api/authentication-and-rbac.md).
 
 **Editorial states:** `DISCOVERED → SELECTED → DRAFT → IN_REVIEW → APPROVED → READY`; `IN_REVIEW → CHANGES_REQUESTED → DRAFT`; new edits after approval require reapproval. Manual stories begin at `DRAFT`. Post-publication states include `UPDATED`, `CORRECTED` and `RETRACTED` with immutable history.
 
@@ -349,6 +348,8 @@ Example environment variable names (never commit real values): `DATABASE_URL`, `
 
 ## 15. Testing and acceptance criteria
 
+The current account/review implementation additionally requires separate authenticated Writer and Editor workflow tests, MFA/session revocation, last-Superadmin protection, task reassignment/access checks, field-level readiness UI checks and revision-bound approval invalidation. See [Editorial approval](api/editorial-approval.md) and [Task assignment](api/task-assignment.md). External platform delivery tests below remain future-phase acceptance criteria.
+
 **Unit:** source parsing, dedupe, authorization, version conflicts, output schema validation, HTML safety, publication state machine.
 
 **Integration:** valid/invalid RSS feeds, WordPress media/draft/update/publish in staging, Facebook API responses/permissions, ambiguous timeouts and independent retries, asset copyright flags.
@@ -488,3 +489,13 @@ Keep the production route and backend candidate APIs, but redesign the **News Fe
 7. Run lint, typecheck, frontend build, backend unit/integration tests (including database-backed tests), and verify no regressions in existing ingestion security and AI functionality. Document any unimplemented global setting explicitly.
 
 **Development priority:** match the original demo's editorial usability while preserving the production application's real behavior; never substitute UI-only controls for backend functionality.
+
+## 21. Implemented account, assignment and review extension
+
+The authoritative three-role policy in section 4 is enforced by FastAPI for every protected newsroom endpoint. The Next.js proxy forwards HttpOnly session cookies rather than a shared token; navigation hides unauthorized administration. Passwords use Argon2id, MFA secrets use encrypted TOTP enrollment, and all account status/role/security changes revoke sessions. Superadmins must enroll MFA before accessing the newsroom. Bootstrap is an interactive one-time trusted-host command without default credentials.
+
+Additive migration `e41b02a77d31` extends users and existing publication requests, adds login sessions, password-reset tokens, persistent authentication throttles, newsroom tasks and immutable review decisions, and retains existing stories, AI jobs, provenance, images, request records and audit events. Legacy publication preparation does not become implicitly approved.
+
+The operational flow is Login → Assigned Task → Draft → Readiness Validation → IN_REVIEW → APPROVED → READY. Rejection returns the story for changes while recording REJECTED on the request; withdrawal returns DRAFT with history. Self-approval is denied for Editors and requires an explicit reasoned Superadmin exception. Edits invalidate approval; platform authorization always remains bound to the submitted immutable revision. READY never means PUBLISHED. External WordPress/Facebook/Instagram delivery is explicitly excluded from this phase.
+
+See the account, task and editorial API guides for route contracts, security settings, current list limits, deployment prerequisites and implementation limitations.

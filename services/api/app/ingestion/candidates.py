@@ -147,9 +147,12 @@ def list_candidates(
         .correlate(Story)
         .scalar_subquery()
     )
+    from app.auth.editor import accessible_stories
+
+    visibility = accessible_stories(session) if session.info.get("actor_id") else True
     base = (
         select(IngestedItem)
-        .outerjoin(Story, Story.origin_item_id == IngestedItem.id)
+        .outerjoin(Story, and_(Story.origin_item_id == IngestedItem.id, visibility))
         .outerjoin(
             StoryVersion,
             and_(StoryVersion.story_id == Story.id, StoryVersion.version_number == latest),
@@ -247,6 +250,7 @@ def list_candidates(
         result.append(
             {
                 "id": str(item.id),
+                "can_edit": story is not None or item.editorial_status != "DRAFT",
                 "title": item.title,
                 "excerpt": item.excerpt,
                 "category": item.category,

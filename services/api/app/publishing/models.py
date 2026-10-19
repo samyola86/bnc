@@ -50,10 +50,27 @@ class PublishingRequest(Record, Base):
 
     __tablename__ = "publishing_requests"
     __table_args__ = (
-        CheckConstraint("status IN ('QUEUED','SCHEDULED','CANCELLED')", name="ck_request_status"),
+        CheckConstraint(
+            "status IN ('QUEUED','SCHEDULED','CANCELLED','IN_REVIEW',"
+            "'CHANGES_REQUESTED','APPROVED','READY','REJECTED','WITHDRAWN')",
+            name="ck_request_status",
+        ),
     )
     story_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stories.id"), index=True)
     version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("story_versions.id"))
     destinations: Mapped[list] = mapped_column(JSON)
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(24), index=True)
+    submitter_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    reviewer_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_notes: Mapped[str] = mapped_column(String(5000), default="")
+
+
+class ReviewDecision(Record, Base):
+    __tablename__ = "review_decisions"
+    request_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("publishing_requests.id"), index=True)
+    actor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    decision: Mapped[str] = mapped_column(String(32))
+    notes: Mapped[str] = mapped_column(String(5000), default="")
+    self_approval_override: Mapped[bool] = mapped_column(default=False)

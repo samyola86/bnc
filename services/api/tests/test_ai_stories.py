@@ -377,7 +377,4 @@ def test_new_endpoints_require_editor_and_reject_invalid_fields(ai):
         ("GET", f"/api/v1/ai/jobs/{uuid.uuid4()}", None),
         ("POST", f"/api/v1/stories/{draft['id']}/ai-draft", {"base_version": 1, "language": "bn"}),
     ]:
-        assert (
-            client.request(method, path, json=body, headers={"Authorization": ""}).status_code
-            == 401
-        )
+        assert client.request(method, path, json=body, headers={"Cookie": ""}).status_code == 401

@@ -1,12 +1,15 @@
 import uuid
 
+from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.ai.models import AIJob
 from app.ai.provider import GenerationError, generate
 from app.ai.service import expire_job
+from app.auth.editor import story_access
 from app.db import models  # noqa: F401 - register FK models in standalone workers
 from app.db.session import SessionLocal
+from app.editorial.models import Story
 from app.ingestion.models import Source
 from app.ingestion.service import audit, now
 from app.workers.celery_app import celery_app
@@ -18,6 +21,15 @@ def run_job(job_id, factory=SessionLocal):
         if not job or job.status != "PENDING":
             return
         expire_job(job)
+        session.info["actor_id"] = job.editor_id
+        try:
+            story_access(session, session.get(Story, job.story_id), write=True)
+        except HTTPException:
+            job.status, job.message, job.finished_at = (
+                "FAILED",
+                "Account or story access changed. Ask an authorized editor to regenerate",
+                now(),
+            )
         for evidence in job.input_json["evidence"]:
             for credit in evidence.get("attributions", []):
                 source = session.get(Source, uuid.UUID(credit["source_id"]))

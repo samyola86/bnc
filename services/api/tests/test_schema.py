@@ -16,6 +16,11 @@ def test_foundation_schema_is_resolvable():
         "channels",
         "publications",
         "publishing_requests",
+        "login_sessions",
+        "password_reset_tokens",
+        "auth_attempts",
+        "newsroom_tasks",
+        "review_decisions",
         "feeds",
         "feed_entries",
         "ingested_items",
@@ -108,7 +113,14 @@ def test_dashboard_counts_database_records():
 
     app.dependency_overrides[get_session] = test_session
     try:
-        response = TestClient(app).get("/api/v1/dashboard/overview")
+        from sqlalchemy.orm import sessionmaker
+
+        from tests.auth_helpers import session_cookie
+
+        factory = sessionmaker(bind=engine)
+        response = TestClient(app, cookies=session_cookie(factory)).get(
+            "/api/v1/dashboard/overview"
+        )
         assert response.status_code == 200
         assert response.json() == {
             "stories": 2,
@@ -119,3 +131,90 @@ def test_dashboard_counts_database_records():
     finally:
         app.dependency_overrides.clear()
         engine.dispose()
+
+
+def test_account_migration_preserves_legacy_authorship_and_requests(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from alembic.config import Config
+    from sqlalchemy import text
+
+    from alembic import command
+    from app.config import get_settings
+
+    database_url = f"sqlite:///{(tmp_path / 'legacy.db').as_posix()}"
+    monkeypatch.setattr(get_settings(), "database_url", database_url)
+    config = Config(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
+    command.upgrade(config, "d23a10e93c41")
+    engine = create_engine(database_url)
+    user_id, story_id, version_id, request_id, audit_id = [f"{n:032x}" for n in range(1, 6)]
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO users (id,email,name,role,active) "
+                "VALUES (:id,'legacy@example.test','Legacy','editor',true)"
+            ),
+            {"id": user_id},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO stories (id,type,language,status,author_id) "
+                "VALUES (:id,'article','en','DRAFT',:user)"
+            ),
+            {"id": story_id, "user": user_id},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO story_versions "
+                "(id,story_id,version_number,editor_id,title,content_json) "
+                "VALUES (:id,:story,1,:user,'Legacy article','{}')"
+            ),
+            {"id": version_id, "story": story_id, "user": user_id},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO publishing_requests (id,story_id,version_id,destinations,status) "
+                "VALUES (:id,:story,:version,'[\"wordpress\"]','QUEUED')"
+            ),
+            {"id": request_id, "story": story_id, "version": version_id},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO audit_events (id,actor_id,action,resource_id,event_details) "
+                "VALUES (:id,:user,'legacy.created',:story,'{}')"
+            ),
+            {"id": audit_id, "user": user_id, "story": story_id},
+        )
+    engine.dispose()
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    with engine.connect() as connection:
+        user = connection.execute(
+            text("SELECT role,active,password_hash FROM users WHERE id=:id"), {"id": user_id}
+        ).one()
+        assert tuple(user) == ("CONTENT_WRITER", 0, None)
+        assert (
+            connection.execute(
+                text("SELECT author_id FROM stories WHERE id=:id"), {"id": story_id}
+            ).scalar()
+            == user_id
+        )
+        assert (
+            connection.execute(
+                text("SELECT editor_id FROM story_versions WHERE id=:id"), {"id": version_id}
+            ).scalar()
+            == user_id
+        )
+        assert (
+            connection.execute(
+                text("SELECT status FROM publishing_requests WHERE id=:id"), {"id": request_id}
+            ).scalar()
+            == "QUEUED"
+        )
+        assert (
+            connection.execute(
+                text("SELECT actor_id FROM audit_events WHERE id=:id"), {"id": audit_id}
+            ).scalar()
+            == user_id
+        )
+    engine.dispose()

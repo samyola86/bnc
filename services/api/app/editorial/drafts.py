@@ -3,7 +3,7 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from app.auth.editor import ensure_editor
+from app.auth.editor import current_user, ensure_editor, story_access
 from app.auth.models import User
 from app.editorial.models import Story, StorySource, StoryVersion
 from app.ingestion.candidates import attribution_rows
@@ -31,13 +31,14 @@ def credit_warning(credits: list[dict]) -> list[str]:
     return []
 
 
-def draft_view(session, story_id: uuid.UUID):
+def draft_view(session, story_id: uuid.UUID, version_id=None):
     story = session.get(Story, story_id)
     if not story:
         raise HTTPException(404, "Draft not found")
     version = session.scalar(
         select(StoryVersion)
         .where(StoryVersion.story_id == story.id)
+        .where(StoryVersion.id == version_id if version_id else True)
         .order_by(StoryVersion.version_number.desc())
         .limit(1)
     )
@@ -63,6 +64,10 @@ def draft_view(session, story_id: uuid.UUID):
         "origin_item_id": str(story.origin_item_id) if story.origin_item_id else None,
         "title": version.title,
         "version": version.version_number,
+        "version_id": str(version.id),
+        "last_editor": {"id": str(editor.id), "name": editor.name}
+        if (editor := session.get(User, version.editor_id))
+        else None,
         "status": story.status,
         "language": story.language,
         "format": story.type,
@@ -87,6 +92,7 @@ def create_draft(session, item_id):
         raise HTTPException(404, "Candidate not found")
     existing = session.scalar(select(Story).where(Story.origin_item_id == item.id))
     if existing:
+        story_access(session, existing)
         return draft_view(session, existing.id)
     actor = ensure_editor(session)
     provenance = attribution_rows(session, item.id)
@@ -136,7 +142,8 @@ def update_draft(session, story_id, body: DraftInput):
     story = session.scalar(select(Story).where(Story.id == story_id).with_for_update())
     if not story:
         raise HTTPException(404, "Draft not found")
-    if story.status not in {"DRAFT", "CHANGES_REQUESTED"}:
+    story_access(session, story, write=True)
+    if story.status not in {"DRAFT", "CHANGES_REQUESTED", "APPROVED", "READY"}:
         raise HTTPException(409, "Only draft revisions can be edited here")
     previous = session.scalar(
         select(StoryVersion)
@@ -146,6 +153,8 @@ def update_draft(session, story_id, body: DraftInput):
     )
     if previous.version_number != body.base_version:
         raise HTTPException(409, "This draft changed in another tab. Reload before saving")
+    if current_user(session).role == "CONTENT_WRITER" and body.scheduled_at:
+        raise HTTPException(403, "Only Editors and Superadmins can set publication schedules")
     for credit in body.credits:
         if credit.source_id and not session.get(Source, credit.source_id):
             raise HTTPException(422, "A referenced source no longer exists")

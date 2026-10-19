@@ -85,8 +85,12 @@ def newsroom(tmp_path, monkeypatch):
     monkeypatch.setattr(service, "SafeFetcher", lambda: web)
     monkeypatch.setattr(tasks, "SessionLocal", factory)
     monkeypatch.setattr(routes, "enqueue", lambda run_id: bool(collect_run(run_id, factory)))
+    from tests.auth_helpers import session_cookie
+
+    monkeypatch.setattr(get_settings(), "auth_cookie_secure", False)
+    cookies = session_cookie(factory)
     app.dependency_overrides[get_session] = session_override
-    with TestClient(app, headers={"Authorization": "Bearer test-editor-token"}) as client:
+    with TestClient(app, cookies=cookies, headers={"Origin": "http://localhost:3000"}) as client:
         yield client, factory, web
     app.dependency_overrides.clear()
     engine.dispose()
@@ -432,10 +436,10 @@ def test_disabled_or_non_editor_identity_cannot_use_source_routes(newsroom):
         user = session.get(User, EDITOR_ID)
         user.active = False
         session.commit()
-    assert client.get("/api/v1/sources").status_code == 403
+    assert client.get("/api/v1/sources").status_code == 401
     with factory() as session:
         user = session.get(User, EDITOR_ID)
-        user.active, user.role = True, "viewer"
+        user.active, user.role = True, "CONTENT_WRITER"
         session.commit()
     assert (
         client.post(

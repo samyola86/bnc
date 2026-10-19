@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth.editor import ensure_editor, require_editor
+from app.auth.editor import ensure_editor, require_editor, require_superadmin, story_access
 from app.db.session import get_session
 from app.editorial.drafts import create_draft, draft_view, update_draft
 from app.ingestion.candidates import cursor_offset, list_candidates, next_cursor
@@ -97,12 +97,12 @@ def sources(
     }
 
 
-@router.post("/sources/test")
+@router.post("/sources/test", dependencies=[Depends(require_superadmin)])
 def test_source(body: TestInput):
     return probe(body)
 
 
-@router.post("/sources", status_code=201)
+@router.post("/sources", status_code=201, dependencies=[Depends(require_superadmin)])
 def add_source(body: SourceInput, session: DB):
     actor = ensure_editor(session)
     if "polling_interval" not in body.model_fields_set:
@@ -115,7 +115,7 @@ def add_source(body: SourceInput, session: DB):
     return source_view(session, source)
 
 
-@router.patch("/sources/{source_id}")
+@router.patch("/sources/{source_id}", dependencies=[Depends(require_superadmin)])
 def edit_source(source_id: uuid.UUID, body: dict, session: DB):
     source = get_source(session, source_id, lock=True)
     if source.archived_at:
@@ -140,7 +140,7 @@ def edit_source(source_id: uuid.UUID, body: dict, session: DB):
     return source_view(session, source)
 
 
-@router.post("/sources/{source_id}/archive")
+@router.post("/sources/{source_id}/archive", dependencies=[Depends(require_superadmin)])
 def archive_source(source_id: uuid.UUID, session: DB):
     source = get_source(session, source_id, lock=True)
     if not source.archived_at:
@@ -150,7 +150,7 @@ def archive_source(source_id: uuid.UUID, session: DB):
     return source_view(session, source)
 
 
-@router.post("/sources/{source_id}/restore")
+@router.post("/sources/{source_id}/restore", dependencies=[Depends(require_superadmin)])
 def restore_source(source_id: uuid.UUID, session: DB):
     source = get_source(session, source_id, lock=True)
     if source.archived_at:
@@ -162,7 +162,7 @@ def restore_source(source_id: uuid.UUID, session: DB):
     return source_view(session, source)
 
 
-@router.post("/sources/{source_id}/test")
+@router.post("/sources/{source_id}/test", dependencies=[Depends(require_superadmin)])
 def test_saved_source(source_id: uuid.UUID, session: DB):
     source = get_source(session, source_id)
     if source.archived_at:
@@ -212,12 +212,16 @@ def queue_source(session, source):
     return {"job_id": str(run.id), "status": "PENDING"}
 
 
-@router.post("/sources/{source_id}/collect", status_code=202)
+@router.post(
+    "/sources/{source_id}/collect", status_code=202, dependencies=[Depends(require_superadmin)]
+)
 def collect_source(source_id: uuid.UUID, session: DB):
     return queue_source(session, get_source(session, source_id, lock=True))
 
 
-@router.post("/feeds/{feed_id}/refresh", status_code=202)
+@router.post(
+    "/feeds/{feed_id}/refresh", status_code=202, dependencies=[Depends(require_superadmin)]
+)
 def refresh_feed(feed_id: uuid.UUID, session: DB):
     from app.ingestion.models import Feed
 
@@ -240,7 +244,7 @@ def settings(session: DB):
     return collection_settings(session).model_dump()
 
 
-@router.patch("/ingestion/settings")
+@router.patch("/ingestion/settings", dependencies=[Depends(require_superadmin)])
 def edit_settings(body: QueueSettingsInput, session: DB):
     actor = ensure_editor(session)
     from app.auth.models import User
@@ -318,6 +322,9 @@ def candidate_draft(item_id: uuid.UUID, session: DB):
 
 @router.get("/stories/{story_id}")
 def get_draft(story_id: uuid.UUID, session: DB):
+    from app.editorial.models import Story
+
+    story_access(session, session.get(Story, story_id))
     return draft_view(session, story_id)
 
 

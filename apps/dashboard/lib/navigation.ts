@@ -8,5 +8,9 @@ export const navigation = [
   { href: "/media-library", label: "Media Library", icon: FolderOpen },
   { href: "/sources", label: "Sources", icon: Newspaper },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/tasks", label: "My Tasks", icon: FileCheck2 },
+  { href: "/account", label: "My Account", icon: Settings },
+  { href: "/users", label: "User Management", icon: Settings },
+  { href: "/audit", label: "Audit History", icon: FileCheck2 },
   { href: "/settings", label: "Settings", icon: Settings }
 ];

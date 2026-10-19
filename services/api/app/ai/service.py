@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 
 from app.ai.models import AIJob
 from app.ai.schemas import GenerateInput
-from app.auth.editor import ensure_editor
+from app.auth.editor import ensure_editor, story_access
 from app.auth.models import User
 from app.config import get_settings
 from app.editorial.drafts import draft_view
@@ -113,6 +113,7 @@ def request_job(session, story_id, body: GenerateInput):
     story = session.scalar(select(Story).where(Story.id == story_id).with_for_update())
     if not story:
         raise HTTPException(404, "Draft not found")
+    story_access(session, story, write=True)
     actor = ensure_editor(session)
     # Lock story before user, matching revision writes and avoiding a cycle with
     # PostgreSQL's editor foreign-key locks. Serialize cross-story quota reservations.
