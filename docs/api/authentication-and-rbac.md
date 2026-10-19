@@ -31,7 +31,7 @@ docker compose --env-file .env -f infrastructure/docker-compose.yml exec api pyt
 
 The CLI prompts for name, email, username and a password without echoing it. It closes permanently once a Superadmin identity exists; PostgreSQL advisory locking serializes concurrent bootstrap attempts. There is no default administrator account or password. Existing shared identities migrate to inactive CONTENT_WRITER records with no password, preserving their historical authorship without elevating them.
 
-Sign in at `/login`, enroll an authenticator using the setup URI, and verify a current code. Superadmin password verification alone creates a restricted ten-minute session: no newsroom or administration access is allowed until MFA succeeds. Editors and Writers can enroll from My Account; `AUTH_REQUIRE_EDITOR_MFA=true` also makes Editor MFA mandatory.
+Sign in at `/login`, enroll an authenticator by scanning the displayed QR code (or expand the manual setup option for the setup key and device link), and verify a current code. Superadmin password verification alone creates a restricted ten-minute session: no newsroom or administration access is allowed until MFA succeeds. Editors and Writers can enroll from My Account; `AUTH_REQUIRE_EDITOR_MFA=true` also makes Editor MFA mandatory.
 
 MFA uses PyOTP TOTP, rejects replayed time steps, rate limits verification, encrypts secrets with Fernet, revokes existing sessions on enrollment, and rotates the verified session. MFA recovery/backup codes are not provided in this phase; lost authenticators require a trusted deployment administrator to perform an audited recovery. Password reset never bypasses enrolled MFA.
 

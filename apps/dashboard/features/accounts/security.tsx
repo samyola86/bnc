@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { AuthenticatorSetup } from "./authenticator-setup";
 import { useRouter } from "next/navigation";
 import { useSession } from "./session";
 import { newsroom } from "../feeds/api";
@@ -23,5 +24,5 @@ export function AccountSecurity() {
       if (action === "logout-all" && window.confirm("Sign out of all devices, including this one?")) { await newsroom("auth/logout-all", { method: "POST" }); router.replace("/login"); }
     } catch (e) { setError((e as Error).message); }
   }
-  return <><PageHeader title="My Account & Security" description="Individual sessions and authenticator verification." /><Feedback error={error} message={notice} /><div className="max-w-xl space-y-5 rounded border bg-card p-6"><p>{user?.name} · {user?.role}</p><p className="text-sm">MFA: {user?.mfa_enabled ? "Enrolled" : "Not enrolled"}</p>{!user?.mfa_enabled && <Button onClick={() => perform("setup")}>Enroll authenticator</Button>}{uri && <><a className="block break-all text-sm text-primary underline" href={uri}>{uri}</a><Field label="Authenticator code"><input inputMode="numeric" className={fieldClass} value={code} onChange={e => setCode(e.target.value)} /></Field><Button onClick={() => perform("verify")}>Verify and enable MFA</Button></>}<div className="flex flex-wrap gap-3"><Button variant="outline" onClick={() => perform("renew")}>Renew session</Button><Button variant="outline" onClick={() => perform("logout-all")}>Sign out all devices</Button></div></div></>;
+  return <><PageHeader title="My Account & Security" description="Individual sessions and authenticator verification." /><Feedback error={error} message={notice} /><div className="max-w-xl space-y-5 rounded border bg-card p-6"><p>{user?.name} · {user?.role}</p><p className="text-sm">MFA: {user?.mfa_enabled ? "Enrolled" : "Not enrolled"}</p>{!user?.mfa_enabled && <Button onClick={() => perform("setup")}>Enroll authenticator</Button>}{uri && <><AuthenticatorSetup uri={uri} /><Field label="Authenticator code"><input inputMode="numeric" className={fieldClass} value={code} onChange={e => setCode(e.target.value)} /></Field><Button onClick={() => perform("verify")}>Verify and enable MFA</Button></>}<div className="flex flex-wrap gap-3"><Button variant="outline" onClick={() => perform("renew")}>Renew session</Button><Button variant="outline" onClick={() => perform("logout-all")}>Sign out all devices</Button></div></div></>;
 }

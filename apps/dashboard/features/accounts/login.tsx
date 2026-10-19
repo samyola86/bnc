@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
 import { useState } from "react";
+import { AuthenticatorSetup } from "./authenticator-setup";
 import { useRouter } from "next/navigation";
 import { newsroom } from "../feeds/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Feedback, fieldClass } from "../feeds/shared";
 import { Account, useSession } from "./session";
 
@@ -19,6 +20,8 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [logoMissing, setLogoMissing] = useState(false);
   async function login(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(null);
     try {
@@ -40,15 +43,35 @@ export function LoginForm() {
     try { const result = await newsroom<{ message: string }>("auth/forgot-password", { method: "POST", body: { identity } }); setNotice(result.message); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
-  return <div className="mx-auto max-w-lg px-6 py-16"><Card><CardHeader><CardTitle>BNC newsroom sign in</CardTitle></CardHeader><CardContent>
-    <Feedback error={error} message={notice} /><form onSubmit={login} className="space-y-5">
-      {mfa ? <><p className="text-sm">Enter the current six-digit code from your authenticator.</p>{uri && <div className="space-y-3 rounded border bg-muted p-3 text-sm"><p>Add this account to an authenticator using its setup link, or enter the secret shown in the link manually.</p><a className="break-all text-primary underline" href={uri}>{uri}</a></div>}<Field label="Authenticator code"><input autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6}" required className={fieldClass} value={code} onChange={e => setCode(e.target.value)} /></Field></> : <>
-      <Field label="Email or username"><input autoComplete="username" required className={fieldClass} value={identity} onChange={e => setIdentity(e.target.value)} /></Field>
-      <Field label="Password"><input type="password" autoComplete="current-password" required className={fieldClass} value={password} onChange={e => setPassword(e.target.value)} /></Field></>}
-      <Button disabled={busy} type="submit">{busy ? "Checking…" : mfa ? "Verify authenticator" : "Sign in"}</Button>
-      {!mfa && <Button type="button" variant="ghost" disabled={busy || !identity.trim()} onClick={forgot}>Reset password</Button>}
-    </form><p className="mt-6 text-xs leading-5 text-muted-foreground">The first Superadmin must be initialized on the trusted API host. No default administrator password exists.</p>
-  </CardContent></Card></div>;
+  return <main className="bnc-login">
+    <div className="bnc-login-layout">
+      <section className="bnc-login-brand" aria-label="Bangladesh News Corporation">
+        {logoMissing ? <div className="bnc-login-logo-fallback"><strong>BNC</strong><span>Bangladesh News Corporation</span></div> :
+          /* eslint-disable-next-line @next/next/no-img-element -- local brand artwork at its original aspect ratio */
+          <img className="bnc-login-logo" src="/images/bnc-logo.png" alt="BNC — Bangladesh News Corporation" width={250} height={250} onError={() => setLogoMissing(true)} />}
+        <p>Trusted News.<br />A Stronger Bangladesh.</p>
+        <div className="bnc-login-accent" />
+      </section>
+      <section className="bnc-login-panel" aria-labelledby="login-heading">
+        <header><p className="bnc-login-welcome">Welcome to</p><h1 id="login-heading">BNC</h1><p className="bnc-login-company">Bangladesh News Corporation</p></header>
+        <p className="bnc-login-intro">{mfa ? "Secure your newsroom access." : "Sign in to access the newsroom."}</p>
+        <Feedback error={error} message={notice} />
+        <form onSubmit={login} className="bnc-login-form">
+          {mfa ? <>
+            {uri ? <AuthenticatorSetup uri={uri} /> : <p className="text-sm leading-6">Enter the current six-digit code from your authenticator.</p>}
+            <label htmlFor="login-code">Authenticator code</label>
+            <input id="login-code" autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} placeholder="000000" required className="bnc-login-input" value={code} onChange={e => setCode(e.target.value)} />
+          </> : <>
+            <div className="bnc-login-field"><label htmlFor="login-identity">Account Name</label><div className="bnc-login-input-wrap"><UserRound aria-hidden="true" size={20} /><input id="login-identity" aria-label="Email or username" autoComplete="username" placeholder="Enter your account name" required className="bnc-login-input" value={identity} onChange={e => setIdentity(e.target.value)} /></div></div>
+            <div className="bnc-login-field"><label htmlFor="login-password">Password</label><div className="bnc-login-input-wrap"><LockKeyhole aria-hidden="true" size={20} /><input id="login-password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" required className="bnc-login-input" value={password} onChange={e => setPassword(e.target.value)} /><button type="button" className="bnc-login-reveal" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? <Eye size={20} /> : <EyeOff size={20} />}</button></div></div>
+          </>}
+          <button disabled={busy} type="submit" className="bnc-login-submit">{busy ? "Checking…" : mfa ? "Verify authenticator" : "Sign in"}<ArrowRight aria-hidden="true" size={21} /></button>
+          {!mfa && <button type="button" className="bnc-login-forgot" disabled={busy || !identity.trim()} onClick={forgot}>Forgot password?</button>}
+        </form>
+        <footer className="bnc-login-footer"><span />BNC Internal Use Only<span /></footer>
+      </section>
+    </div>
+  </main>;
 }
 
 export function ResetPasswordForm() {

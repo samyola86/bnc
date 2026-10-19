@@ -75,6 +75,8 @@ test("Superadmin MFA, account lifecycle and assignment screens", async ({ page }
   await page.getByLabel("Email or username").fill("browseradmin");
   await page.getByLabel("Password", { exact: true }).fill("browser-test-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("img", { name: "Scan to add your BNC authenticator" })).toBeVisible();
+  await page.getByText("Can’t scan? Set up manually", { exact: true }).click();
   const link = page.locator('a[href^="otpauth://"]');
   await expect(link).toBeVisible();
   const secret = new URL((await link.getAttribute("href"))!).searchParams.get("secret")!;

@@ -5,6 +5,73 @@
   --primary: #c61f32; --primary-foreground: #fff; --muted: #eef0f3; --muted-foreground: #626b79;
   --border: #e3e6eb; --ring: #c61f32;
 }
+
+.bnc-login {
+  min-height: 100svh;
+  color: #f9fafb;
+  background: linear-gradient(90deg, rgb(0 0 0 / 20%), rgb(0 0 0 / 12%)), url('/images/login-background.png') center / cover no-repeat, #10151c;
+  display: grid;
+  align-items: center;
+  padding: 56px 32px;
+}
+.bnc-login-layout { width: 100%; max-width: 1020px; margin: auto; display: grid; grid-template-columns: 1fr 430px; align-items: center; gap: 100px; }
+.bnc-login-brand { padding-bottom: 60px; text-shadow: 0 2px 16px #000; }
+.bnc-login-logo { display: block; width: 240px; height: auto; }
+.bnc-login-logo-fallback { width: 240px; min-height: 240px; background: #c90008; display: flex; flex-direction: column; justify-content: center; padding: 20px; text-align: center; }
+.bnc-login-logo-fallback strong { font-size: 76px; line-height: 1.2; }
+.bnc-login-logo-fallback span { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+.bnc-login-brand > p { margin-top: 26px; font-size: 28px; font-weight: 400; line-height: 1.35; }
+.bnc-login-accent { width: 64px; height: 5px; margin-top: 20px; background: #ed0010; }
+.bnc-login-panel {
+  border: 1px solid rgb(255 255 255 / 38%);
+  border-radius: 21px;
+  padding: 56px 43px 36px;
+  background: linear-gradient(150deg, rgb(46 49 57 / 87%), rgb(15 17 19 / 94%));
+  box-shadow: 0 20px 70px rgb(0 0 0 / 40%), inset 0 1px 0 rgb(255 255 255 / 8%);
+  backdrop-filter: blur(20px);
+  --background: #171b22; --foreground: #f9fafb; --muted: #252932; --muted-foreground: #c4c9d0; --border: #4c505b; --primary: #ff5964;
+}
+.bnc-login-welcome { font-size: 20px; line-height: 1.4; }
+.bnc-login-panel h1 { font-size: 44px; font-weight: 700; line-height: 1.15; letter-spacing: -1.5px; }
+.bnc-login-company { margin-top: 3px; font-size: 18px; line-height: 1.5; }
+.bnc-login-intro { margin: 26px 0 36px; font-size: 18px; line-height: 1.5; }
+.bnc-login-form { display: flex; flex-direction: column; gap: 24px; }
+.bnc-login-field label, .bnc-login-form > label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+.bnc-login-input-wrap { position: relative; }
+.bnc-login-input-wrap > svg { position: absolute; left: 15px; top: 15px; color: #e4e6eb; pointer-events: none; }
+.bnc-login-input { width: 100%; min-height: 50px; border: 1px solid #505460; border-radius: 9px; padding: 12px 15px; background: rgb(255 255 255 / 3%); color: #fff; font-size: 14px; }
+.bnc-login-input-wrap .bnc-login-input { padding-left: 57px; padding-right: 46px; }
+.bnc-login-input::placeholder { color: #a1a6b0; opacity: 1; }
+.bnc-login-input:focus { border-color: #f26069; outline: 2px solid rgb(242 96 105 / 28%); outline-offset: 2px; }
+.bnc-login-reveal { position: absolute; right: 5px; top: 4px; width: 42px; height: 42px; display: grid; place-items: center; color: #e4e6eb; cursor: pointer; border-radius: 5px; }
+.bnc-login-submit { min-height: 58px; display: flex; justify-content: center; align-items: center; gap: 16px; border: 1px solid #f21324; border-radius: 8px; background: #c90012; color: white; font-size: 18px; font-weight: 500; cursor: pointer; transition: background 150ms; }
+.bnc-login-submit:hover { background: #e00017; }
+.bnc-login-submit:disabled { opacity: .6; cursor: wait; }
+.bnc-login-forgot { align-self: flex-end; margin-top: -7px; color: #ff5260; text-decoration: underline; font-size: 14px; cursor: pointer; }
+.bnc-login-forgot:disabled { color: #b6a1a3; cursor: default; }
+.bnc-login-footer { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 54px; white-space: nowrap; font-size: 12px; color: #c0c2c8; }
+.bnc-login-footer span { flex: 1; height: 1px; background: #666970; }
+@media (min-width: 1400px) { .bnc-login-layout { transform: translateX(25px); } }
+@media (max-width: 900px) {
+  .bnc-login-layout { gap: 40px; grid-template-columns: 1fr 400px; }
+  .bnc-login-brand > p { font-size: 22px; }
+  .bnc-login-logo, .bnc-login-logo-fallback { width: 190px; }
+  .bnc-login-panel { padding: 40px 30px 30px; }
+}
+@media (max-width: 680px) {
+  .bnc-login { padding: 30px 18px; background-position: 62% center; }
+  .bnc-login-layout { max-width: 430px; grid-template-columns: 1fr; gap: 28px; }
+  .bnc-login-brand { padding: 0; display: flex; gap: 20px; align-items: center; }
+  .bnc-login-logo, .bnc-login-logo-fallback { width: 90px; min-height: 90px; flex-shrink: 0; }
+  .bnc-login-logo-fallback { padding: 8px; }
+  .bnc-login-logo-fallback strong { font-size: 28px; }
+  .bnc-login-logo-fallback span { font-size: 5px; }
+  .bnc-login-brand > p { margin: 0; font-size: 19px; }
+  .bnc-login-accent { display: none; }
+  .bnc-login-panel { padding: 32px 24px 28px; }
+  .bnc-login-intro { margin: 22px 0 28px; }
+  .bnc-login-footer { margin-top: 36px; }
+}
 @theme inline {
   --color-background: var(--background); --color-foreground: var(--foreground);
   --color-card: var(--card); --color-card-foreground: var(--card-foreground);
