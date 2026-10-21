@@ -2,7 +2,7 @@
 
 **Brand:** BNC — Bangladesh News Corporation  
 **Date:** 18 October 2026  
-**Status:** Working newsroom and discovery/editorial intelligence; platform delivery and audience integrations remain planned. See implemented updates below.  
+**Status:** Working newsroom and discovery/editorial intelligence; platform delivery and audience integrations remain planned. See implemented updates below.
 **Brand assets:** Use the uploaded white-on-red BNC logo with shapla, doyel and river elements. Preserve its proportions; derive compact variants only from the original asset.
 
 ## 1. Executive summary

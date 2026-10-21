@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.config import get_settings
-from app.ingestion.models import Feed, IngestedItem, Source
+from app.ingestion.models import Feed, FeedEntry, IngestedItem, Source
 from app.ingestion.network import Document, SourceError
 from app.ingestion.parsing import ParsedFeed, article
 from app.ingestion.service import ingest, now
@@ -308,6 +308,8 @@ def test_windows_syndication_missing_signals_and_bilingual_rules(newsroom):  # n
     )
     with factory() as s:
         item = s.get(IngestedItem, first)
+        entry = s.scalar(select(FeedEntry).where(FeedEntry.item_id == first))
+        entry.provider_metadata = {"gdelt_seen_at": "2026-10-21T00:00:00Z"}
         _, config = controls(s)
         data, sufficient = deterministic(
             SimpleNamespace(title="ঢাকায় হাসপাতাল ও স্বাস্থ্য সেবা", excerpt="", category="", language="bn"),
@@ -322,6 +324,7 @@ def test_windows_syndication_missing_signals_and_bilingual_rules(newsroom):  # n
             assert 0 <= result["score"] <= 100
             assert result["signals"]["count"] == 1
             assert result["signals"]["google_trends"] is None
+            assert result["signals"]["instagram_engagement"] is None
         assert similarity("District flood kills 12 people", "District flood kills 42 people") == 0
         s.commit()
     assert GoogleTrends().status()["status"] == "UNCONFIGURED"

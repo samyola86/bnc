@@ -136,6 +136,7 @@ def evidence(session, item_ids):
             "metadata": entry.provider_metadata,
             "unresolved_redirect": "news.google.com/" in entry.original_url,
             "eligible": source.active
+            and source.extraction_mode == "metadata"
             and not source.archived_at
             and source.rights != "prohibited"
             and entry.rights_status != "prohibited",
@@ -297,7 +298,14 @@ def measure(session, cluster, window, at=None, *, store=True):
         "direction": direction,
         "evidence_quality": quality,
         "google_trends": None,
-        "instagram_engagement": [r["metadata"] for r in refs if r["metadata"]] or None,
+        "instagram_engagement": [
+            r["metadata"]
+            for r in refs
+            if r["provider"] == "INSTAGRAM_ACCOUNT"
+            and r["eligible"]
+            and set(r["metadata"]) & {"like_count", "comments_count"}
+        ]
+        or None,
         "instagram_engagement_changes": engagement_changes or None,
         "coverage_momentum": coverage_momentum,
         "recent_publisher_labels": len(recent_publishers),
