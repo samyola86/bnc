@@ -50,6 +50,17 @@ def probe(source, fetcher=None) -> dict:
         }
     fetcher = fetcher or SafeFetcher()
     try:
+        from app.intelligence.providers import ADAPTERS
+
+        if source.source_type in ADAPTERS:
+            batch = ADAPTERS[source.source_type].collect(source, fetcher)
+            return {
+                "supported": True,
+                "health": "READY",
+                "feeds": [],
+                "message": f"Valid provider: {len(batch.feed.articles)} metadata items",
+                "sample": [{"title": a.title, "url": a.url} for a in batch.feed.articles[:3]],
+            }
         document = fetcher.fetch(source.feed_url or source.url)
         try:
             parsed = parse_feed(document)
@@ -95,9 +106,42 @@ def probe(source, fetcher=None) -> dict:
 def ingest(session: Session, source: Source, feed: Feed, parsed: ParsedFeed) -> tuple[int, int]:
     inserted = duplicates = 0
     for article in parsed.articles:
-        if session.scalar(
-            select(FeedEntry.id).where(FeedEntry.feed_id == feed.id, FeedEntry.guid == article.guid)
-        ):
+        if source.source_type == "INSTAGRAM_ACCOUNT":
+            from app.intelligence.models import ProviderObservation
+
+            metadata = getattr(article, "provider_metadata", {})
+            metrics = {
+                key: value
+                for key, value in metadata.items()
+                if key in {"like_count", "comments_count"} and isinstance(value, int) and value >= 0
+            }
+            previous = session.scalar(
+                select(ProviderObservation)
+                .where(
+                    ProviderObservation.provider == "instagram",
+                    ProviderObservation.topic == article.normalized_url,
+                )
+                .order_by(ProviderObservation.observed_at.desc())
+                .limit(1)
+            )
+            if metrics and (not previous or previous.metrics != metrics):
+                session.add(
+                    ProviderObservation(
+                        provider="instagram",
+                        topic=article.normalized_url,
+                        geography="",
+                        metrics=metrics,
+                        observed_at=now(),
+                    )
+                )
+        existing_entry = session.scalar(
+            select(FeedEntry).where(FeedEntry.feed_id == feed.id, FeedEntry.guid == article.guid)
+        )
+        if existing_entry:
+            existing_item = session.get(IngestedItem, existing_entry.item_id)
+            if existing_item.normalized_url == article.normalized_url:
+                existing_item.title, existing_item.excerpt = article.title, article.excerpt
+                existing_entry.provider_metadata = getattr(article, "provider_metadata", {})
             duplicates += 1
             continue
         item = session.scalar(
@@ -154,6 +198,7 @@ def ingest(session: Session, source: Source, feed: Feed, parsed: ParsedFeed) -> 
                         publisher_name=article.publisher_name or source.publisher,
                         rights_status=source.rights,
                         source_type=source.source_type,
+                        provider_metadata=getattr(article, "provider_metadata", {}),
                         published_at=article.published_at,
                     )
                 )
@@ -230,6 +275,8 @@ def collect_run(run_id: uuid.UUID, session_factory, fetcher_factory=None) -> dic
                 "publisher",
                 "language",
                 "category",
+                "provider_config",
+                "provider_cursor",
             )
             snapshot = {field: getattr(source, field) for field in fields}
             target = source.feed_url or (source.url if source.source_type != "website" else None)
@@ -246,15 +293,20 @@ def collect_run(run_id: uuid.UUID, session_factory, fetcher_factory=None) -> dic
             source_id = source.id
             had_success = bool(feed and feed.last_success)
         fetcher = (fetcher_factory or SafeFetcher)()
-        if not target:
+        from app.intelligence.providers import ADAPTERS
+
+        adapter = ADAPTERS.get(snapshot["source_type"])
+        if not target and not adapter:
             result = probe(SimpleNamespace(**snapshot), fetcher)
             if not result["supported"]:
                 raise SourceError(result["message"])
             target = result["feeds"][0]["url"]
-        document = fetcher.fetch(target, headers)
+        batch = adapter.collect(SimpleNamespace(**snapshot), fetcher) if adapter else None
+        document = batch.document if batch else fetcher.fetch(target, headers)
+        target = document.url
         if document.status == 304 and not had_success:
             raise SourceError("The source returned HTTP 304 before a successful collection")
-        parsed = parse_feed(document) if document.status != 304 else None
+        parsed = batch.feed if batch else parse_feed(document) if document.status != 304 else None
         with session_factory() as session:
             # Revalidate under a short lock after network I/O, before any metadata writes.
             run = session.get(CollectionRun, run_id)
@@ -289,6 +341,8 @@ def collect_run(run_id: uuid.UUID, session_factory, fetcher_factory=None) -> dic
                 feed.title = parsed.title
                 feed.etag = document.headers.get("etag", "")[:500] or None
                 feed.last_modified = document.headers.get("last-modified", "")[:200] or None
+            if batch:
+                source.provider_cursor = batch.cursor
             feed.last_success = source.last_success = now()
             source.failure_count, source.health, source.last_error = 0, "HEALTHY", None
             source.next_collection_at = next_collection(source)

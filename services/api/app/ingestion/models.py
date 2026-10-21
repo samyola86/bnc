@@ -16,6 +16,9 @@ class Source(Record, Base):
     rights: Mapped[str] = mapped_column(String(100), default="unverified")
     notes: Mapped[str | None] = mapped_column(Text)
     source_type: Mapped[str] = mapped_column(String(24), default="rss")
+    provider_config: Mapped[dict] = mapped_column(JSON, default=dict)
+    provider_cursor: Mapped[dict] = mapped_column(JSON, default=dict)
+    provision_key: Mapped[str | None] = mapped_column(String(120), unique=True)
     url: Mapped[str] = mapped_column(String(2048), default="")
     feed_url: Mapped[str | None] = mapped_column(String(2048))
     category: Mapped[str] = mapped_column(String(100), default="")
@@ -36,7 +39,8 @@ class Source(Record, Base):
     __table_args__ = (
         CheckConstraint("polling_interval BETWEEN 5 AND 1440", name="ck_source_frequency"),
         CheckConstraint(
-            "source_type IN ('rss','website','api','json_feed','manual')", name="ck_source_type"
+            "source_type IN ('rss','website','api','json_feed','manual',"
+            "'INSTAGRAM_ACCOUNT','GDELT','GOOGLE_NEWS')", name="ck_source_type"
         ),
         CheckConstraint(
             "extraction_mode IN ('metadata','reference_only')", name="ck_source_extraction"
@@ -89,6 +93,9 @@ class IngestedItem(Record, Base):
     corroboration: Mapped[int] = mapped_column(default=0)
     uniqueness: Mapped[int] = mapped_column(default=50)
     rank_override: Mapped[int | None]
+    trend_momentum: Mapped[float | None]
+    evidence_quality: Mapped[float | None]
+    intelligence_score: Mapped[float | None]
 
 
 class FeedEntry(Record, Base):
@@ -102,6 +109,7 @@ class FeedEntry(Record, Base):
     publisher_name: Mapped[str] = mapped_column(String(200))
     rights_status: Mapped[str] = mapped_column(String(100))
     source_type: Mapped[str] = mapped_column(String(24))
+    provider_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 

@@ -51,6 +51,13 @@ with SessionLocal() as session:
         )
     session.commit()
 
+# Explicitly test-only discovery fixture in this disposable schema.
+from app.intelligence.tasks import run_cycle
+from tests.test_intelligence import seeded
+
+seeded(SessionLocal, title="Browser discovery: Bangladesh cyclone response begins")
+run_cycle(SessionLocal, force=True)
+
 
 @asynccontextmanager
 async def lifespan(app):

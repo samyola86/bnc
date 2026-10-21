@@ -11,10 +11,26 @@ from app.ingestion.models import (
     IngestionSettings,
     Source,
 )
+from app.intelligence.models import (
+    ClusterMember,
+    IntelligenceSettings,
+    IntelligenceUsage,
+    ItemAnalysis,
+    ProviderObservation,
+    StoryCluster,
+    TrendSnapshot,
+)
 from app.publishing.models import Channel, Publication, PublishingRequest, ReviewDecision
 from app.tasks.models import NewsroomTask
 
 __all__ = [
+    "IntelligenceSettings",
+    "ItemAnalysis",
+    "StoryCluster",
+    "ClusterMember",
+    "TrendSnapshot",
+    "IntelligenceUsage",
+    "ProviderObservation",
     "AuthAttempt",
     "LoginSession",
     "ResetToken",

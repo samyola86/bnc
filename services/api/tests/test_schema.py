@@ -9,6 +9,13 @@ def test_foundation_schema_is_resolvable():
     Base.metadata.create_all(engine)
     inspector = inspect(engine)
     assert set(inspector.get_table_names()) == {
+        "intelligence_settings",
+        "item_analyses",
+        "story_clusters",
+        "cluster_members",
+        "trend_snapshots",
+        "intelligence_usage",
+        "provider_observations",
         "users",
         "sources",
         "stories",
