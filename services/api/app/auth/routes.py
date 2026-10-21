@@ -21,6 +21,7 @@ from app.auth.security import (
     aware,
     cipher,
     consume_attempt,
+    cookie_secure,
     csrf,
     current_session,
     digest,
@@ -75,7 +76,7 @@ def login(body: Login, request: Request, response: Response, session: DB):
         )
         if previous:
             previous.revoked = True
-    login = issue_session(session, user, response)
+    login = issue_session(session, user, response, request=request)
     user.last_login = now()
     audit(session, "auth.password_verified", user.id, user.id)
     session.commit()
@@ -93,7 +94,7 @@ def logout(request: Request, response: Response, session: DB):
     login, user = current_session(request, session, pending=True)
     login.revoked = True
     response.delete_cookie(
-        COOKIE, path="/", secure=get_settings().auth_cookie_secure, httponly=True, samesite="strict"
+        COOKIE, path="/", secure=cookie_secure(request), httponly=True, samesite="strict"
     )
     audit(session, "auth.logout", user.id, user.id)
     session.commit()
@@ -104,7 +105,9 @@ def logout(request: Request, response: Response, session: DB):
 def logout_all(request: Request, response: Response, session: DB):
     _, user = current_session(request, session)
     revoke(session, user.id)
-    response.delete_cookie(COOKIE, path="/")
+    response.delete_cookie(
+        COOKIE, path="/", secure=cookie_secure(request), httponly=True, samesite="strict"
+    )
     audit(session, "auth.logout_all", user.id, user.id)
     session.commit()
     return {"ok": True}
@@ -114,7 +117,7 @@ def logout_all(request: Request, response: Response, session: DB):
 def renew(request: Request, response: Response, session: DB):
     old, user = current_session(request, session)
     old.revoked = True
-    issue_session(session, user, response, verified=True)
+    issue_session(session, user, response, verified=True, request=request)
     session.commit()
     return {"ok": True}
 
@@ -147,7 +150,7 @@ def mfa_verify(body: Code, request: Request, response: Response, session: DB):
         raise HTTPException(401, "Invalid or already used authenticator code")
     user.mfa_last_step, user.mfa_enabled = step, True
     revoke(session, user.id)
-    issue_session(session, user, response, verified=True)
+    issue_session(session, user, response, verified=True, request=request)
     audit(session, "auth.mfa_verified", user.id, user.id)
     session.commit()
     return {"ok": True}

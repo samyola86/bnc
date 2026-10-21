@@ -82,3 +82,27 @@ The browser suite runs against a separate API and dashboard, with test-only acco
 5. Gracefully stop the test API (SIGTERM) to run schema cleanup, and stop the second dashboard process. Test traces/screenshots are ignored by Git.
 
 The browser tests use genuine separate Writer/Editor sessions and authenticator enrollment for the test Superadmin. They verify required-field highlights, live warning removal, focus, conditional Instagram requirements, incomplete saves, exact-revision submission/approval/READY, hidden administration for writers, account creation/suspension/reactivation/soft-deletion and task assignment. Test account and editorial screenshots are captured for visual inspection.
+## Simultaneous localhost and ngrok access
+
+Keep AUTH_ORIGIN=http://localhost:3000 and the existing local AUTH_COOKIE_SECURE=false. Add this non-secret setting to the root .env without replacing its other contents:
+
+```dotenv
+AUTH_ADDITIONAL_ORIGINS=["https://trustable-detail-drift.ngrok-free.dev"]
+```
+
+Both API and dashboard read the same exact allowlist. Public origins must use HTTPS; paths, credentials and wildcards are rejected. An empty JSON array preserves localhost-only behavior. No CORS change is needed: browser requests go through the dashboard's same-origin API proxy. The proxy requires the Origin to be allowlisted and its host/port to match the actual Host header; forwarded host/protocol headers cannot authorize a request. Keep ngrok's original public Host header (do not use --host-header=rewrite).
+
+Recreate only the API and dashboard to apply this change:
+
+```powershell
+docker compose --env-file .env -f infrastructure/docker-compose.yml up -d --no-deps --force-recreate api dashboard
+ngrok http --url=trustable-detail-drift.ngrok-free.dev 3000
+```
+
+To apply temporarily without editing .env, set `$env:AUTH_ADDITIONAL_ORIGINS='["https://trustable-detail-drift.ngrok-free.dev"]'` in that PowerShell session before the compose command. Future recreation must use the same setting (or add it to .env). Worker/scheduler recreation is unnecessary for browser authentication. No database, Redis, MinIO, migration or volume change is required. Only port 3000 is tunneled; ports 3000/8000 and infrastructure retain their loopback bindings.
+
+Visit http://localhost:3000/login and https://trustable-detail-drift.ngrok-free.dev/login. Sign in and verify your authenticator separately at each hostname: host-only cookies intentionally do not share sign-in between addresses. Cookies retain HttpOnly, SameSite=Strict and Path=/ with no Domain. HTTPS trusted origins always get Secure cookies, even with the local HTTP setting false; AUTH_COOKIE_SECURE=true continues to force Secure everywhere. Logout/renewal/MFA rotation use the same rule. Account suspension, password reset and sign-out-all still revoke sessions across both addresses through the existing database. Password-reset emails continue to use the configured primary AUTH_ORIGIN.
+
+The additional Next.js allowedDevOrigins entries contain only exact configured hostnames for development assets; the API proxy still validates the complete scheme/host/port. Never use a wildcard ngrok domain. The ngrok process must be running; the application does not install ngrok or manage its account credentials.
+
+Run `pytest -q tests/test_auth_origins.py tests/test_accounts_workflow.py` in the API container and `npx playwright test --config apps/dashboard/playwright.proxy.config.ts` in the dashboard container at /workspace. These test real API login/MFA and session lifecycle in an isolated test database, and proxy behavior with a stubbed upstream response without real credentials.

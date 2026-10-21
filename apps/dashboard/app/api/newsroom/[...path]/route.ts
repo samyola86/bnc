@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { validWriteOrigin } from "@/lib/auth-origins";
 
 const uuid = "[0-9a-fA-F-]{36}";
 const routes: Record<string, RegExp[]> = {
@@ -15,8 +16,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     return Response.json({ error: { message: "Route not found" } }, { status: 404 });
   }
   if (request.method !== "GET") {
-    const origin = request.headers.get("origin");
-    if (!origin || new URL(origin).host !== request.headers.get("host") || request.headers.get("sec-fetch-site") === "cross-site") {
+    if (!validWriteOrigin(request.headers)) {
       return Response.json({ error: { message: "A same-origin editor request is required" } }, { status: 403 });
     }
     if (!request.headers.get("content-type")?.startsWith("application/json")) {
@@ -43,7 +43,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   try {
     const response = await fetch(`${process.env.API_INTERNAL_URL ?? "http://localhost:8000"}/api/v1/${path}${request.nextUrl.search}`, {
       method: request.method, body, cache: "no-store", signal: AbortSignal.timeout(60000),
-      headers: { Cookie: request.headers.get("cookie") ?? "", Origin: request.headers.get("origin") ?? "", "Content-Type": "application/json" },
+      headers: { Cookie: request.headers.get("cookie") ?? "", Origin: request.headers.get("origin") ?? "", "Sec-Fetch-Site": request.headers.get("sec-fetch-site") ?? "", "Content-Type": "application/json" },
     });
     const headers = new Headers({ "Content-Type": response.headers.get("content-type") ?? "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
     for (const cookie of response.headers.getSetCookie()) headers.append("Set-Cookie", cookie);

@@ -74,8 +74,19 @@ def consume_attempt(session, key, limit=10):
 
 def csrf(request):
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
-        if request.headers.get("origin") != get_settings().auth_origin:
+        if (
+            request.headers.get("origin") not in get_settings().auth_trusted_origins
+            or request.headers.get("sec-fetch-site") == "cross-site"
+        ):
             raise HTTPException(403, "A trusted same-origin request is required")
+
+
+def cookie_secure(request):
+    settings = get_settings()
+    origin = request.headers.get("origin", "")
+    return settings.auth_cookie_secure or (
+        origin in settings.auth_trusted_origins and origin.startswith("https://")
+    )
 
 
 def current_session(request, session, *, pending=False):
@@ -105,7 +116,7 @@ def current_session(request, session, *, pending=False):
     return login, user
 
 
-def issue_session(session, user, response, verified=False):
+def issue_session(session, user, response, verified=False, *, request=None):
     required = (
         user.role == "SUPERADMIN"
         or user.mfa_enabled
@@ -125,7 +136,7 @@ def issue_session(session, user, response, verified=False):
         COOKIE,
         token,
         httponly=True,
-        secure=get_settings().auth_cookie_secure,
+        secure=cookie_secure(request) if request else get_settings().auth_cookie_secure,
         samesite="strict",
         path="/",
         max_age=ttl,

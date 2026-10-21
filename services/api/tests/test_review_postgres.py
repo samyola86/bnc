@@ -1,6 +1,11 @@
+import importlib.util
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 
 from app.config import get_settings
 from app.db.session import get_session
@@ -8,6 +13,47 @@ from app.main import app
 from tests.auth_helpers import session_cookie
 from tests.test_accounts_workflow import PASSWORD, create_story, decision, submit
 from tests.test_ingestion_postgres import postgres  # noqa: F401
+
+
+def test_timestamp_repair_allows_review_submission(postgres):  # noqa: F811
+    factory = postgres
+    with factory().get_bind().begin() as connection:
+        for column in ("created_at", "updated_at"):
+            connection.execute(
+                text(f"ALTER TABLE publishing_requests ALTER COLUMN {column} DROP DEFAULT")
+            )
+        spec = importlib.util.spec_from_file_location(
+            "timestamp_repair",
+            Path(__file__).parents[1]
+            / "alembic/versions/f52c04b81a22_repair_publishing_timestamps.py",
+        )
+        repair = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(repair)
+        with Operations.context(MigrationContext.configure(connection)):
+            repair.upgrade()
+            repair.upgrade()  # Repair also works on databases that already have defaults.
+
+    def database():
+        with factory() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = database
+    try:
+        with TestClient(
+            app, cookies=session_cookie(factory), headers={"Origin": "http://localhost:3000"}
+        ) as client:
+            draft = create_story(client)
+            request = submit(client, draft)
+            detail = client.get(f"/api/v1/publishing/requests/{request['id']}")
+            assert detail.status_code == 200, detail.text
+            assert request["status"] == "IN_REVIEW"
+        with factory() as session:
+            timestamps = session.execute(
+                text("SELECT created_at, updated_at FROM publishing_requests")
+            ).one()
+            assert all(timestamps)
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_concurrent_decisions_only_approve_one_exact_revision(postgres, monkeypatch):  # noqa: F811
