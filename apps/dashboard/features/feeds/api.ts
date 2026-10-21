@@ -16,6 +16,7 @@ export type CollectionRun = { id: string; source_id: string; status: string; mes
 export type Credit = { source_id: string | null; publisher_name: string; original_url: string | null; attribution_text: string; is_original_reporting: boolean; rights_status: string; entry_method?: string };
 export type Provenance = { source_id: string; publisher_name: string; original_url: string; rights_status: string; source_type: string; retrieved_at: string; published_at: string | null };
 export type Source = {
+  provider_config?: Record<string, string>;
   id: string; publisher: string; url: string; feed_url: string | null; source_type: string;
   language: string; category: string; rights: string; extraction_mode: string; polling_interval: number;
   active: boolean; notes: string; health: string; last_success: string | null; last_error: string | null;

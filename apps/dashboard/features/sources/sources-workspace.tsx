@@ -10,6 +10,7 @@ import { CollectionSettings, CollectionRun, localDate, newsroom, Source, SourceP
 import { Feedback, Status } from "@/features/feeds/shared";
 import { useRemote } from "@/features/feeds/use-remote";
 import { AutomaticCollection } from "./collection-settings";
+import { ManualInstagramLead } from "../intelligence/workspace";
 import { SourceForm } from "./source-form";
 
 export function SourcesWorkspace() {
@@ -44,7 +45,7 @@ export function SourcesWorkspace() {
   }
   return <><PageHeader title="Sources" description="Register publishers and permitted feeds, test availability, and control collection." action={<Button disabled={!settings} onClick={() => setEditing("new")}><Plus />Add source</Button>} />
     <Feedback error={error ?? settingsError ?? actionError} message={notice} />
-    {settings && <AutomaticCollection settings={settings} onSaved={() => { refreshSettings(); refresh(); }} />}
+    <ManualInstagramLead />{settings && <AutomaticCollection settings={settings} onSaved={() => { refreshSettings(); refresh(); }} />}
     {editing && <SourceForm defaults={settings ?? undefined} key={typeof editing === "string" ? "new" : editing.id} source={editing === "new" ? undefined : editing} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); setNotice("Source saved. Collection runs on its schedule; use Collect now to start immediately."); refresh(); }} />}
     {jobId && <JobStatus jobId={jobId} onClose={() => { setJobId(null); refresh(); }} />}
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={archived} onChange={e => { setArchived(e.target.checked); setCursor(null); }} />Include archived sources</label><span className="text-muted-foreground">{data ? `${data.total} registered sources` : "Loading source registry…"}</span><Button asChild variant="outline" size="sm"><Link href="/news-feeds"><Radio />Incoming stories</Link></Button></div>

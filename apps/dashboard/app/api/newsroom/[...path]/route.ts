@@ -12,7 +12,8 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   const path = (await context.params).path.join("/");
   const extra = request.method === "GET" ? /^(publishing\/queue|media\/[0-9a-fA-F-]{36})$/ : request.method === "POST" ? /^(media|stories\/[0-9a-fA-F-]{36}\/queue|publishing\/queue\/[0-9a-fA-F-]{36}\/cancel)$/ : null;
   const accounts = /^(auth\/(login|logout|logout-all|me|renew|forgot-password|reset-password|mfa\/setup|mfa\/verify)|admin\/(users|audit|system-status|users\/[0-9a-fA-F-]{36}(\/(status|reset-password))?)|tasks(\/[0-9a-fA-F-]{36}(\/(status|history))?)?|publishing\/requests\/[0-9a-fA-F-]{36}|stories\/[0-9a-fA-F-]{36}\/(readiness|submit-review|approve|request-changes|reject|ready))$/;
-  if (!accounts.test(path) && !extra?.test(path) && !routes[request.method]?.some(pattern => pattern.test(path))) {
+  const intelligence = /^intelligence\/(settings|cycle|provision|trends|recommendations|gdelt-timeline|trends\/[0-9a-fA-F-]{36}(\/(draft|select|move))?|items\/[0-9a-fA-F-]{36}\/classification|sources\/[0-9a-fA-F-]{36}\/instagram-post)$/;
+  if (!intelligence.test(path) && !accounts.test(path) && !extra?.test(path) && !routes[request.method]?.some(pattern => pattern.test(path))) {
     return Response.json({ error: { message: "Route not found" } }, { status: 404 });
   }
   if (request.method !== "GET") {

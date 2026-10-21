@@ -2,6 +2,8 @@ import { BarChart3, FileCheck2, FolderOpen, LayoutDashboard, Newspaper, PenLine,
 export const navigation = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/news-feeds", label: "News Feeds", icon: Radio },
+  { href: "/trending", label: "Trending Stories", icon: BarChart3 },
+  { href: "/recommendations", label: "Recommended for Publishing", icon: Newspaper },
   { href: "/manual-writing", label: "Manual Writing", icon: PenLine },
   { href: "/publishing", label: "Publishing", icon: Send },
   { href: "/published", label: "Published", icon: FileCheck2 },
