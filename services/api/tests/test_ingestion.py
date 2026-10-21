@@ -103,7 +103,6 @@ def add_source(client, **values):
             "publisher": "Original publisher",
             "url": "https://publisher.example/feed",
             "language": "en",
-            "active": True,  # Explicitly verified test fixture source.
             **values,
         },
     )

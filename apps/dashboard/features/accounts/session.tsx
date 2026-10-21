@@ -30,7 +30,7 @@ export function SessionBoundary({ children, publicChildren }: { children: React.
     const timer = setInterval(load, 30000);
     return () => { active = false; clearInterval(timer); };
   }, [path, generation, isPublic, router]);
-  const adminPath = ["/users", "/sources", "/settings", "/audit", "/intelligence-settings"].some(p => path === p);
+  const adminPath = ["/users", "/sources", "/settings", "/audit"].some(p => path === p);
   useEffect(() => {
     if (!isPublic && adminPath && session && session.user.role !== "SUPERADMIN") router.replace("/");
   }, [isPublic, adminPath, session, router]);

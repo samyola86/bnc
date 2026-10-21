@@ -80,7 +80,3 @@ docker compose --env-file .env -f infrastructure/docker-compose.yml exec -T api 
 ```
 
 During live verification, the public BBC Bangla RSS source was registered with metadata-only permissions and a 15-minute collection interval. Real Celery collection created 14 unique candidates; a repeat collection created no duplicates. Celery Beat was also observed scheduling and completing collection when the source became due. One candidate was converted into an attributed draft and manually revised without publishing it. The source remains available in the local registry.
-
-## News intelligence provider extension
-
-Sources now also support GDELT, GOOGLE_NEWS and INSTAGRAM_ACCOUNT, with backend-controlled provider adapters and non-secret provider_config. New registrations default inactive; explicitly verify rights/technical availability before activation. Existing registrations are unchanged. Public discovery keeps the same SSRF, robots, bounded collection, provenance and source-health controls. Instagram supports official Meta Business Discovery or manual post-link leads without scraping. Idempotent provisioning inserts only missing inactive publishers. See [News intelligence](news-intelligence.md) for exact configuration and API details.

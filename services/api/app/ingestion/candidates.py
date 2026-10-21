@@ -88,13 +88,7 @@ def score_expression(session, timestamp: datetime):
         + 0.10 * IngestedItem.uniqueness
     )
     return cast(
-        func.round(
-            cast(
-                func.coalesce(IngestedItem.rank_override, IngestedItem.intelligence_score, score),
-                Numeric(16, 8),
-            ),
-            4,
-        ),
+        func.round(cast(func.coalesce(IngestedItem.rank_override, score), Numeric(16, 8)), 4),
         Numeric(10, 4),
     )
 

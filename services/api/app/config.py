@@ -20,12 +20,6 @@ class Settings(BaseSettings):
     ingestion_api_token: str = ""
     openai_api_key: str = ""
     openai_model: str = ""
-    openai_classification_model: str = ""
-    openai_classification_input_per_million: float = 0
-    openai_classification_output_per_million: float = 0
-    meta_instagram_token: str = ""
-    meta_instagram_account_id: str = ""
-    meta_graph_version: str = "v25.0"
     ai_hourly_limit: int = 20
     auth_cookie_secure: bool = True
     auth_origin: str = "http://localhost:3000"

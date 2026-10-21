@@ -5,9 +5,8 @@ import { newsroom } from "@/features/feeds/api";
 import { Field, Feedback, fieldClass } from "@/features/feeds/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-const initial = { publisher: "", url: "", feed_url: "", source_type: "rss", language: "bn", category: "", rights: "metadata_only", extraction_mode: "metadata", polling_interval: 15, active: false, notes: "", draft_language: "" };
+const initial = { publisher: "", url: "", feed_url: "", source_type: "rss", language: "bn", category: "", rights: "metadata_only", extraction_mode: "metadata", polling_interval: 15, active: true, notes: "", draft_language: "" };
 export function SourceForm({ source, defaults, onSaved, onCancel }: { source?: Source; defaults?: CollectionSettings; onSaved: () => void; onCancel: () => void }) {
-  const [providerConfig, setProviderConfig] = useState<Record<string, string>>(source?.provider_config ?? {});
   const [form, setForm] = useState(source ? { ...initial, ...source, feed_url: source.feed_url ?? "", draft_language: source.draft_language ?? "" } : { ...initial, polling_interval: defaults?.default_interval ?? initial.polling_interval });
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SourceTest | null>(null);
@@ -16,11 +15,11 @@ export function SourceForm({ source, defaults, onSaved, onCancel }: { source?: S
     setForm(previous => ({ ...previous, [key]: value }));
     if (["url", "feed_url", "source_type", "rights", "extraction_mode"].includes(key)) setResult(null);
   }
-  function payload() { return { ...Object.fromEntries(Object.keys(initial).map(key => [key, (key === "feed_url" || key === "draft_language") ? form[key] || null : form[key as keyof typeof initial]])), provider_config: providerConfig }; }
+  function payload() { return Object.fromEntries(Object.keys(initial).map(key => [key, (key === "feed_url" || key === "draft_language") ? form[key] || null : form[key as keyof typeof initial]])); }
   async function test() {
     setBusy("test"); setError(null);
     try {
-      setResult(await newsroom<SourceTest>("sources/test", { method: "POST", body: { url: form.url, source_type: form.source_type, feed_url: form.feed_url || null, rights: form.rights, extraction_mode: form.extraction_mode, provider_config: providerConfig } }));
+      setResult(await newsroom<SourceTest>("sources/test", { method: "POST", body: { url: form.url, source_type: form.source_type, feed_url: form.feed_url || null, rights: form.rights, extraction_mode: form.extraction_mode } }));
     } catch (error) { setError((error as Error).message); } finally { setBusy(null); }
   }
   async function save(event: React.FormEvent) {
@@ -30,10 +29,9 @@ export function SourceForm({ source, defaults, onSaved, onCancel }: { source?: S
   }
   return <Card className="mb-6"><CardHeader><CardTitle>{source ? "Edit source" : "Add a source"}</CardTitle></CardHeader><CardContent><form onSubmit={save} className="space-y-5">
     <Feedback error={error} />
-    {["INSTAGRAM_ACCOUNT", "GDELT", "GOOGLE_NEWS"].includes(form.source_type) && <div className="space-y-3 rounded border p-4"><p className="text-sm">Verify source permissions before activating. Instagram requires official Meta Business Discovery access; manual post links remain available.</p><Field label={form.source_type === "INSTAGRAM_ACCOUNT" ? "Instagram username (without @)" : "Discovery query"}><input required className={fieldClass} value={providerConfig[form.source_type === "INSTAGRAM_ACCOUNT" ? "username" : "query"] ?? ""} onChange={e => setProviderConfig({ ...providerConfig, [form.source_type === "INSTAGRAM_ACCOUNT" ? "username" : "query"]: e.target.value })} /></Field>{form.source_type === "GOOGLE_NEWS" && <div className="grid gap-3 sm:grid-cols-3">{["hl", "gl", "ceid"].map(key => <Field key={key} label={key}><input className={fieldClass} placeholder={{ hl: "en-BD", gl: "BD", ceid: "BD:en" }[key]} value={providerConfig[key] ?? ""} onChange={e => setProviderConfig({ ...providerConfig, [key]: e.target.value })} /></Field>)}</div>}</div>}
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       <Field label="Publisher name"><input autoFocus required maxLength={200} className={fieldClass} value={form.publisher} onChange={e => change("publisher", e.target.value)} placeholder="Original publisher" /></Field>
-      <Field label="Source type"><select className={fieldClass} value={form.source_type} onChange={e => change("source_type", e.target.value)}><option value="rss">RSS / Atom feed</option><option value="website">Website · discover feeds</option><option value="json_feed">JSON Feed</option><option value="api">Public API · supported feed formats</option><option value="manual">Manual reference</option><option value="INSTAGRAM_ACCOUNT">Instagram account · official API / manual links</option><option value="GDELT">GDELT discovery</option><option value="GOOGLE_NEWS">Google News RSS discovery</option></select></Field>
+      <Field label="Source type"><select className={fieldClass} value={form.source_type} onChange={e => change("source_type", e.target.value)}><option value="rss">RSS / Atom feed</option><option value="website">Website · discover feeds</option><option value="json_feed">JSON Feed</option><option value="api">Public API · supported feed formats</option><option value="manual">Manual reference</option></select></Field>
       <Field label="Source URL"><input type="url" required maxLength={2048} className={fieldClass} value={form.url} onChange={e => change("url", e.target.value)} placeholder="https://publisher.example/feed" /></Field>
       <Field label="Feed URL (optional)"><input type="url" maxLength={2048} className={fieldClass} value={form.feed_url} onChange={e => change("feed_url", e.target.value)} placeholder="Select a discovered feed or enter its URL" /></Field>
       <Field label="Collection frequency (minutes)"><input type="number" min={5} max={1440} required className={fieldClass} value={form.polling_interval} onChange={e => change("polling_interval", Number(e.target.value))} /></Field>

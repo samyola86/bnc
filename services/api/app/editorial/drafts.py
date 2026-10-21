@@ -86,7 +86,7 @@ def draft_view(session, story_id: uuid.UUID, version_id=None):
     }
 
 
-def create_draft(session, item_id, *, suggestions=None):
+def create_draft(session, item_id):
     item = session.scalar(select(IngestedItem).where(IngestedItem.id == item_id).with_for_update())
     if not item:
         raise HTTPException(404, "Candidate not found")
@@ -109,16 +109,7 @@ def create_draft(session, item_id, *, suggestions=None):
         version_number=1,
         editor_id=actor,
         title=item.title,
-        content_json={
-            "summary": item.excerpt,
-            "body": "",
-            "category": (suggestions or {}).get("category", item.category),
-            **(
-                {"tags": suggestions.get("tags", []), "discovery_classification": suggestions}
-                if suggestions
-                else {}
-            ),
-        },
+        content_json={"summary": item.excerpt, "body": "", "category": item.category},
     )
     session.add(version)
     session.flush()

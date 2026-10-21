@@ -1,15 +1,12 @@
-import re
 import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.ingestion.network import public_url
 
-SourceType = Literal[
-    "rss", "website", "api", "json_feed", "manual", "INSTAGRAM_ACCOUNT", "GDELT", "GOOGLE_NEWS"
-]
+SourceType = Literal["rss", "website", "api", "json_feed", "manual"]
 Rights = Literal["unverified", "metadata_only", "licensed", "owned", "prohibited"]
 
 
@@ -24,27 +21,9 @@ class SourceInput(BaseModel):
     rights: Rights = "metadata_only"
     extraction_mode: Literal["metadata", "reference_only"] = "metadata"
     polling_interval: int = Field(default=15, ge=5, le=1440)
-    active: bool = False
+    active: bool = True
     notes: str = Field(default="", max_length=4000)
     draft_language: Literal["bn", "en"] | None = None
-    provider_config: dict[str, str] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def provider_settings(self):
-        allowed = {"username", "query", "hl", "gl", "ceid"}
-        if set(self.provider_config) - allowed or any(
-            len(v) > 300 for v in self.provider_config.values()
-        ):
-            raise ValueError("Invalid provider configuration; never place credentials here")
-        if self.source_type == "INSTAGRAM_ACCOUNT":
-            if not re.fullmatch(r"[A-Za-z0-9_.]{1,30}", self.provider_config.get("username", "")):
-                raise ValueError("Instagram username required")
-        if (
-            self.source_type in {"INSTAGRAM_ACCOUNT", "GDELT", "GOOGLE_NEWS"}
-            and "active" not in self.model_fields_set
-        ):
-            self.active = False
-        return self
 
     @field_validator("url", "feed_url")
     @classmethod
@@ -65,7 +44,6 @@ class TestInput(BaseModel):
     feed_url: str | None = Field(default=None, max_length=2048)
     rights: Rights = "metadata_only"
     extraction_mode: Literal["metadata", "reference_only"] = "metadata"
-    provider_config: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("url", "feed_url")
     @classmethod
