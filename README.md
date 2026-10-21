@@ -56,3 +56,7 @@ Individual accounts now use three roles: SUPERADMIN, EDITOR and CONTENT_WRITER. 
 TipTap rich text, complete taxonomy/media workflows, automatic scheduled platform delivery, SSE, and WordPress/social integrations. Individual HttpOnly server-side sessions now authenticate users; the legacy `INGESTION_API_TOKEN` is no longer accepted. Public RSS/Atom and JSON Feed collection needs no external API keys. The full publishing vertical slice in architecture section 19 remains planned; AI never publishes or approves stories.
 
 The supplied logo is absent, so a text wordmark is used until the original asset is supplied; see `public/brand/README.md`. The available `html demo/Newsroom_Dashboard(2).html` supplies the editorial layout/workflow reference. Bengali/English input is supported, timestamps are stored in UTC, and the interface identifies Asia/Dhaka as the display timezone.
+
+### News intelligence
+
+Trending Stories and Recommended for Publishing extend existing ingestion with metadata classification, explainable event clusters, coverage momentum/history and audited editorial corrections. The Superadmin AI Intelligence Settings page controls optional model processing and daily cost reservations. RSS, GDELT, Google News and official/manual Instagram adapters preserve provenance and source restrictions. New sources start inactive; no recommendation is automatically approved or published. See [News intelligence setup and limitations](docs/api/news-intelligence.md).

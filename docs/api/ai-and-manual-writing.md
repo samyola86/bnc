@@ -64,3 +64,7 @@ docker compose --env-file .env -f infrastructure/docker-compose.yml exec -T api 
 ```
 
 Tests exercise the Responses HTTP contract with a mocked provider, schema/error handling, RSS-to-AI-to-edited-version persistence, manual creation/listing/history/credits, stale previews, authorization, quotas and isolated PostgreSQL concurrency. They require no paid OpenAI requests. A live provider smoke test requires valid server credentials and model access; test results from the mock do not claim live model quality or factual verification.
+
+## Separate intelligence classification
+
+OPENAI_MODEL remains the article-drafting configuration. Optional metadata classification uses OPENAI_CLASSIFICATION_MODEL and separately configured token prices, cached structured results and a persistent daily budget ledger. It is disabled by default and never generates articles, submits reviews or publishes. Superadmins configure its taxonomy/cadence/budget through AI Intelligence Settings; editors can correct categories and tags without later AI overwriting those corrections. See [News intelligence](news-intelligence.md).

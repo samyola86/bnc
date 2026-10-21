@@ -2,7 +2,7 @@
 
 **Brand:** BNC — Bangladesh News Corporation  
 **Date:** 18 October 2026  
-**Status:** Proposed, developer-ready specification (not an implemented system)  
+**Status:** Working newsroom and discovery/editorial intelligence; platform delivery and audience integrations remain planned. See implemented updates below.  
 **Brand assets:** Use the uploaded white-on-red BNC logo with shapla, doyel and river elements. Preserve its proportions; derive compact variants only from the original asset.
 
 ## 1. Executive summary
@@ -499,3 +499,10 @@ Additive migration `e41b02a77d31` extends users and existing publication request
 The operational flow is Login → Assigned Task → Draft → Readiness Validation → IN_REVIEW → APPROVED → READY. Rejection returns the story for changes while recording REJECTED on the request; withdrawal returns DRAFT with history. Self-approval is denied for Editors and requires an explicit reasoned Superadmin exception. Edits invalidate approval; platform authorization always remains bound to the submitted immutable revision. READY never means PUBLISHED. External WordPress/Facebook/Instagram delivery is explicitly excluded from this phase.
 
 See the account, task and editorial API guides for route contracts, security settings, current list limits, deployment prerequisites and implementation limitations.
+## Implemented news intelligence extension — 21 October 2026
+
+The modular monolith now extends the existing collector and ranking path with app/intelligence: provider adapters, controlled classification, persistent cost reservations, conservative event clusters and four-window trend snapshots. Seven additive tables plus provider metadata fields preserve original candidates, story IDs, assignments and immutable revisions. Collection → eligible metadata classification → cluster → trend → existing candidate score → recommendation → existing draft/editor is the implemented path. No publication or approval is automated.
+
+Celery runs a leased intelligence cycle on a configurable cadence. Cheap deterministic classification precedes optional bounded OpenAI calls; PostgreSQL serializes budget reservations across workers. Recommendations use the existing relevance/impact/freshness/originality concepts with configurable trend/evidence weights. Missing Google Trends/audience data is unavailable, and publisher counts are never independent-confirmation claims. Editorial classification overrides and manual cluster merges/splits are audited and persist across cycles.
+
+Next.js adds Trending Stories, Recommended for Publishing and Superadmin AI Intelligence Settings. The existing Sources form supports provider configurations/manual Instagram leads; task creation and draft opening reuse current APIs and RBAC. Existing localhost/ngrok exact-origin security is preserved. See [News intelligence](api/news-intelligence.md) for the API, deployment configuration, permissions, operational bounds and verified integration limits. The original architecture sections above include future platform delivery features; this extension does not implement them.

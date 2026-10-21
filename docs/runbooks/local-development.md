@@ -106,3 +106,11 @@ Visit http://localhost:3000/login and https://trustable-detail-drift.ngrok-free.
 The additional Next.js allowedDevOrigins entries contain only exact configured hostnames for development assets; the API proxy still validates the complete scheme/host/port. Never use a wildcard ngrok domain. The ngrok process must be running; the application does not install ngrok or manage its account credentials.
 
 Run `pytest -q tests/test_auth_origins.py tests/test_accounts_workflow.py` in the API container and `npx playwright test --config apps/dashboard/playwright.proxy.config.ts` in the dashboard container at /workspace. These test real API login/MFA and session lifecycle in an isolated test database, and proxy behavior with a stubbed upstream response without real credentials.
+
+## News intelligence deployment
+
+Run `alembic upgrade head` in the API container to apply 5431b66d1876 (after the pending timestamp repair f52c04b81a22). Recreate API, worker, scheduler and dashboard after deploying source/config changes, preserving AUTH_ADDITIONAL_ORIGINS for existing ngrok access. Do not reset named volumes. The dashboard uses bind-mounted sources; a clean deployment should rebuild the dashboard image as usual.
+
+Set OPENAI_CLASSIFICATION_MODEL and OPENAI_CLASSIFICATION_INPUT_PER_MILLION / OPENAI_CLASSIFICATION_OUTPUT_PER_MILLION in the ignored backend environment if paid classification is desired. Preserve OPENAI_MODEL and the existing API key. Zero/unknown prices block paid calls; enable optional classification only after reviewing AI Intelligence Settings. Its default target is $1 per UTC day with five paid candidates per cycle; this does not cap unrelated account traffic or article drafting. Meta credentials stay backend-only. Google Trends requires authorized access and stays unconfigured otherwise.
+
+Provision verified-but-inactive candidate publishers with `python -m app.intelligence.provision`, review permissions in Sources and explicitly activate only approved sources. Trending Stories and recommendations use collected metadata; no sample records are inserted into the real newsroom. Google News robots restrictions and GDELT availability failures remain visible instead of being bypassed. See [News intelligence](../api/news-intelligence.md) for all provider, model, billing and API configuration.
