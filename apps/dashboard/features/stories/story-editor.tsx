@@ -52,7 +52,9 @@ function DraftForm({ draft, onSaved }: { draft: Draft; onSaved: () => void }) {
     setTitle(preview.title); setSummary(preview.summary); setBody(preview.body); setCategory(preview.category);
     setLanguage(preview.language); setTags(preview.tags.join(", ")); setCaptions(preview.social_captions);
     setAiJobId(preview.ai_job_id); setAiWarnings([...preview.editorial_warnings, ...preview.claims_to_verify]);
+    setPreviewing(false);
     setNotice("AI preview applied to the editor. Verify and edit the writing, then save revision.");
+    setTimeout(() => focusField("title"), 0);
   }
   const missing = !credits.some(c => c.is_original_reporting || c.publisher_name.trim() || c.attribution_text.trim());
   const incomplete = credits.some(c => !c.is_original_reporting && !c.publisher_name.trim() && !c.attribution_text.trim());

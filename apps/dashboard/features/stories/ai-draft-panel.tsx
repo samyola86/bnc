@@ -55,6 +55,7 @@ export function AIDraftPanel({ id, version, language, onApply }: { id: string; v
 }
 
 function AIPreview({ job, stale, onApply }: { job: Job & { result: Result }; stale: boolean; onApply: (draft: AppliedAI) => void }) {
+  const [confirming, setConfirming] = useState(false);
   const [preview, setPreview] = useState<AppliedAI>({ title: job.result.headline, summary: job.result.summary, body: job.result.paragraphs.map(p => p.text).join("\n\n"), category: job.result.category, tags: job.result.tags, language: job.result.language, social_captions: job.result.social_captions, ai_job_id: job.id, claims_to_verify: job.result.claims_to_verify, editorial_warnings: job.result.editorial_warnings });
   return <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50/40 p-4">
     <h3 className="font-semibold">Editable AI preview · human review required</h3>
@@ -67,6 +68,14 @@ function AIPreview({ job, stale, onApply }: { job: Job & { result: Result }; sta
     <Field label="Suggested tags (comma separated)"><input className={fieldClass} value={preview.tags.join(", ")} onChange={e => setPreview({ ...preview, tags: e.target.value.split(",").map(t => t.trim()) })} /></Field>
     {(["facebook", "instagram"] as const).map(channel => <Field key={channel} label={`AI ${channel} caption`}><textarea rows={3} maxLength={5000} className={fieldClass} value={preview.social_captions[channel]} onChange={e => setPreview({ ...preview, social_captions: { ...preview.social_captions, [channel]: e.target.value } })} /></Field>)}
     <div className="text-sm"><p className="font-medium">Verification and evidence</p><ul className="mt-2 list-disc space-y-1 pl-5">{[...preview.editorial_warnings, ...preview.claims_to_verify].map((warning, i) => <li key={i}>{warning}</li>)}</ul>{job.result.paragraphs.map((p, i) => <p key={i} className="mt-2 break-all text-xs text-muted-foreground">Paragraph {i + 1} evidence: {p.supporting_source_ids.join(", ")}</p>)}</div>
-    <Button type="button" disabled={stale || !preview.title.trim()} onClick={() => { if (window.confirm("Replace the current headline, summary, body, category, tags, language and captions with this AI preview? Any unsaved writing in those fields will be replaced. Credits are preserved. You must still save the revision.")) onApply(preview); }}>Apply preview to editor</Button>
+    {!preview.title.trim() && <p role="status" className="text-sm text-destructive">Enter an AI headline before applying the preview.</p>}
+    <Button type="button" disabled={stale || !preview.title.trim()} aria-expanded={confirming} onClick={() => setConfirming(true)}>Apply preview to editor</Button>
+    {confirming && <div role="group" aria-label="Confirm applying AI preview" className="space-y-3 rounded-lg border bg-card p-4">
+      <p className="text-sm">Replace the current headline, summary, body, category, tags, language and captions? Unsaved writing in those fields will be replaced. Credits are preserved. You must still save the revision.</p>
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" autoFocus variant="outline" onClick={() => setConfirming(false)}>Cancel</Button>
+        <Button type="button" disabled={stale || !preview.title.trim()} onClick={() => { onApply(preview); setConfirming(false); }}>Replace editor writing</Button>
+      </div>
+    </div>}
   </div>;
 }
