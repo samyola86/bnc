@@ -2,9 +2,10 @@
 import { createContext } from "react";
 import type { Credit } from "../feeds/api";
 import type { StoryDetails } from "./story-details";
+import type { NewsBite } from "./news-bite-editor";
 
 export const ValidationContext = createContext<{ errors: Record<string, string>; attempted: boolean }>({ errors: {}, attempted: false });
-export function readinessFor(title: string, body: string, category: string, tags: string, language: string, details: StoryDetails, credits: Credit[]) {
+export function readinessFor(title: string, body: string, category: string, tags: string, language: string, details: StoryDetails, credits: Credit[], bite?: NewsBite, renderValid = false, captions: { facebook?: string; instagram?: string } = {}) {
   const checks: Record<string, [boolean, string]> = {
     title: [!!title.trim(), "Add a headline"], body: [!!body.trim(), "Add article content"],
     category: [!!category.trim(), "Add a category"], tags: [tags.split(",").some(t => t.trim()), "Add at least one tag"],
@@ -16,6 +17,14 @@ export function readinessFor(title: string, body: string, category: string, tags
   if (details.destinations.includes("instagram")) checks.cover_image_id = [!!details.cover_image_id, "Add an Instagram cover image"];
   if (details.schedule) checks.scheduled_at = [new Date(`${details.schedule}:00+06:00`).getTime() > Date.now(), "Choose a future publication time in Dhaka"];
   if (credits.some(c => c.rights_status === "prohibited")) checks.credits_rights = [false, "Resolve prohibited source usage rights"];
+  if (details.format === "news_bite") {
+    delete checks.body;
+    checks.cover_image_id = [!!details.cover_image_id, "Add a permitted photograph"];
+    checks.news_bite = [!!bite?.headline.trim() && !!bite.publication_date, "Add a graphic headline and date"];
+    checks.news_bite_rights = [bite?.image_rights === "owned" || bite?.image_rights === "licensed", "Confirm photograph usage rights"];
+    checks.news_bite_render = [renderValid, "Resolve graphic layout errors and wait for the preview"];
+    for (const channel of ["facebook", "instagram"] as const) if (details.destinations.includes(channel) && !(captions[channel]?.trim() || details.social_caption.trim())) checks.social_captions = [false, "Add captions for the selected social destinations"];
+  }
   const errors = Object.fromEntries(Object.entries(checks).filter(([, [valid]]) => !valid).map(([key, [, message]]) => [key, message]));
   return { errors, complete: Object.keys(checks).length - Object.keys(errors).length, total: Object.keys(checks).length };
 }

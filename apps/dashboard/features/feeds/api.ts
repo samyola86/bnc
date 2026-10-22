@@ -1,6 +1,6 @@
-export async function newsroom<T>(path: string, options?: { method: string; body?: unknown }): Promise<T> {
+export async function newsroom<T>(path: string, options?: { method: string; body?: unknown; signal?: AbortSignal }): Promise<T> {
   const response = await fetch(`/api/newsroom/${path}`, {
-    method: options?.method ?? "GET", cache: "no-store", headers: { "Content-Type": "application/json" },
+    method: options?.method ?? "GET", signal: options?.signal, cache: "no-store", headers: { "Content-Type": "application/json" },
     body: options ? JSON.stringify(options.body ?? {}) : undefined,
   });
   const data = await response.json();
@@ -37,6 +37,8 @@ export type Candidate = {
 export type CollectionSettings = { candidate_limit: number; default_interval: number; draft_language: "bn" | "en"; source_mode: "all_supported" | "feeds_only"; preferred_categories: string[]; automatic_collection: boolean };
 export type CandidatePage = { items: Candidate[]; total: number; candidate_limit: number; next_cursor: string | null };
 export type Draft = {
+  news_bite?: import("../stories/news-bite-editor").NewsBite | null;
+  news_bite_render?: { asset_id?: string; errors: string[]; warnings: string[]; version_id: string };
   id: string; origin_item_id: string | null; title: string; summary: string; body: string; category: string;
   version: number; status: string; credits: Credit[]; warnings: string[]; provenance: Provenance[];
   language: "bn" | "en"; tags?: string[]; social_captions?: { facebook?: string; instagram?: string };

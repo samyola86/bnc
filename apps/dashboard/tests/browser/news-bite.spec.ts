@@ -1,0 +1,76 @@
+import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+
+test("adaptive News Bite templates, save/reopen, exact PNG export and Article preservation", async ({ page }) => {
+  test.setTimeout(180000);
+  await page.goto("/login");
+  await page.getByLabel("Email or username").fill("browserwriter");
+  await page.getByLabel("Password", { exact: true }).fill("browser-test-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL("http://localhost:3002/");
+  await page.goto("/manual-writing");
+  await page.getByLabel("New story headline").fill("News Bite browser verification");
+  await page.getByRole("button", { name: "Create saved draft" }).click();
+  await expect(page.getByLabel("Headline", { exact: true })).toBeVisible();
+  await page.getByLabel("Story body", { exact: true }).fill("Preserved original Article reporting.");
+  await page.getByLabel("Format", { exact: true }).selectOption("news_bite");
+  await page.getByLabel("Graphic headline", { exact: true }).fill("Trusted reporting for Bangladesh today");
+  await page.getByLabel("Highlighted headline segment").fill("Bangladesh");
+  await page.getByLabel("Supporting description").fill("Independent reporting from the BNC newsroom.");
+  await page.getByLabel("Original source credit", { exact: true }).fill("Original BNC reporting");
+  await page.getByLabel("Graphic category", { exact: true }).fill("HOT NEWS");
+  await page.getByLabel("Photograph usage rights").selectOption("owned");
+  await page.getByLabel("Authors / contributors (comma separated)").fill("BNC reporter");
+  await page.getByLabel("Upload / replace image").setInputFiles("public/images/login-background.png");
+  await page.getByLabel("facebook caption", { exact: true }).fill("Facebook reporting #BNC");
+  await page.getByLabel("instagram caption", { exact: true }).fill("Instagram reporting #BNC");
+  await page.getByLabel("Facebook", { exact: true }).check();
+  await page.getByLabel("Instagram", { exact: true }).check();
+  await page.getByLabel("Tags (comma separated)").fill("Bangladesh, Verified");
+  const live = page.getByRole("img", { name: "Live News Bite graphic", exact: true });
+  for (const [id, name] of [["newspaper", "BNC Newspaper"], ["dark-editorial", "BNC Dark Editorial"], ["breaking-news", "BNC Breaking News"], ["modern-magazine", "BNC Modern Magazine"]]) {
+    await page.getByRole("button", { name: new RegExp(name) }).click();
+    await expect(page.getByLabel("Highlighted headline segment")).toHaveValue("Bangladesh");
+    for (const length of ["short", "long"]) {
+      await page.getByLabel("Graphic headline", { exact: true }).fill(length === "short" ? "Trusted reporting for Bangladesh today" : "Bangladesh communities are working together to strengthen trusted reporting, protect public interests and ensure that every citizen can access clear information about the decisions shaping our shared future and daily lives.");
+      await expect(page.getByRole("status").filter({ hasText: "Updating preview" })).toHaveCount(0);
+      await expect(live).toBeVisible();
+      await live.screenshot({ path: `test-results/newsbite-${id}-${length}.png` });
+    }
+    await expect(page.getByLabel("facebook caption", { exact: true })).toHaveValue("Facebook reporting #BNC");
+  }
+  await page.getByLabel("Photo focal point horizontal").fill("0.1");
+  await expect(page.getByRole("status").filter({ hasText: "Updating preview" })).toHaveCount(0);
+  const src = await live.getAttribute("src");
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Export PNG", exact: true }).click();
+  const download = await downloadEvent;
+  const data = await readFile((await download.path())!);
+  expect(data.readUInt32BE(16)).toBe(1080);
+  expect(data.readUInt32BE(20)).toBe(1350);
+  expect(data.equals(Buffer.from(src!.split(",")[1], "base64"))).toBe(true);
+  await page.getByRole("button", { name: "Enlarge preview" }).click();
+  await expect(page.getByRole("dialog", { name: "Enlarged News Bite preview" })).toBeVisible();
+  await page.getByRole("button", { name: "Close enlarged preview" }).click();
+  await page.getByRole("button", { name: "Save revision", exact: true }).first().click();
+  await expect(page.getByText(/Revision 2/).first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Photo focal point horizontal")).toHaveValue("0.1");
+  await expect(page.getByRole("button", { name: /BNC Modern Magazine/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("facebook caption", { exact: true })).toHaveValue("Facebook reporting #BNC");
+  await page.getByLabel("Graphic headline", { exact: true }).fill("Bangladesh " .repeat(140));
+  await expect(page.getByRole("alert").filter({ hasText: "Text does not fit" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Export PNG", exact: true })).toHaveCount(0);
+  await page.getByLabel("Format", { exact: true }).selectOption("article");
+  await expect(page.getByLabel("Story body", { exact: true })).toHaveValue("Preserved original Article reporting.");
+  await page.getByLabel("Format", { exact: true }).selectOption("news_bite");
+  await expect(page.getByLabel("Original source credit", { exact: true })).toHaveValue("Original BNC reporting");
+  await page.getByLabel("Graphic headline", { exact: true }).fill("Bangladesh reporting for every citizen");
+  await expect(page.getByRole("status").filter({ hasText: "Updating preview" })).toHaveCount(0);
+  await page.getByRole("button", { name: /Send to publishing/ }).click();
+  await expect(page).toHaveURL("http://localhost:3002/publishing");
+  await page.getByRole("link", { name: "Open review" }).first().click();
+  await expect(page.getByRole("img", { name: "Saved News Bite graphic for this exact revision" })).toBeVisible();
+  await expect(page.getByText("facebook caption: Facebook reporting #BNC")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Approve revision" })).toHaveCount(0);
+});
