@@ -68,11 +68,15 @@ def create_story(body: ManualInput, session: DB):
                 "destinations",
                 "social_caption",
                 "scheduled_at",
+                "news_bite",
             },
         ),
     )
     session.add(version)
     session.flush()
+    from app.newsbite.service import attach_render
+
+    attach_render(version)
     from app.ingestion.models import Source
 
     for credit in body.credits:

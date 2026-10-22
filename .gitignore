@@ -14,3 +14,4 @@ coverage/
 .tools/
 test-results/
 playwright-report/
+services/api/tests/generated-newsbite/

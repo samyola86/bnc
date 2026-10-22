@@ -60,6 +60,12 @@ def latest(session, story_id):
 def validate(session, story, version):
     draft = draft_view(session, story.id, version.id)
     result = readiness(version.content_json, version.title, draft["language"], draft["credits"])
+    if version.content_json.get("format") == "news_bite":
+        from app.newsbite.service import graphic_errors
+
+        result["errors"].update(
+            graphic_errors(version.content_json, version.id, verify_storage=True)
+        )
     if result["errors"]:
         raise HTTPException(
             422, {"message": "Complete the publishing requirements", "fields": result["errors"]}

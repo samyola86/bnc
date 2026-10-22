@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.ingestion.network import public_url
+from app.newsbite.schema import NewsBite
 
 SourceType = Literal["rss", "website", "api", "json_feed", "manual"]
 Rights = Literal["unverified", "metadata_only", "licensed", "owned", "prohibited"]
@@ -126,6 +127,7 @@ class DraftInput(BaseModel):
     )
     social_caption: str = Field(default="", max_length=5000)
     scheduled_at: datetime | None = None
+    news_bite: NewsBite | None = None
 
     @field_validator("scheduled_at")
     @classmethod

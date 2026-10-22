@@ -16,6 +16,7 @@ from app.auth.routes import admin as admin_router
 from app.auth.routes import router as auth_router
 from app.config import get_settings
 from app.media.routes import router as media_router
+from app.newsbite.routes import router as newsbite_router
 from app.publishing.queue import router as publishing_router
 from app.tasks.routes import router as tasks_router
 
@@ -86,3 +87,4 @@ app.include_router(publishing_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
+app.include_router(newsbite_router, prefix="/api/v1")

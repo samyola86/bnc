@@ -31,6 +31,12 @@ def readiness(content, title, language, credits):
         checks["scheduled_at"] = (valid, "Choose a future publication time in Dhaka")
     if any(credit.get("rights_status") == "prohibited" for credit in credits):
         checks["credits_rights"] = (False, "Resolve prohibited source usage rights")
+    if content.get("format") == "news_bite":
+        from app.newsbite.service import graphic_errors
+
+        checks.pop("body", None)
+        checks["news_bite"] = (True, "")
+        checks.update({key: (False, message) for key, message in graphic_errors(content).items()})
     return {
         "complete": sum(valid for valid, _ in checks.values()),
         "total": len(checks),

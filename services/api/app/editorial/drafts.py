@@ -205,6 +205,7 @@ def update_draft(session, story_id, body: DraftInput):
                     "destinations",
                     "social_caption",
                     "scheduled_at",
+                    "news_bite",
                 }
             },
             **body.model_dump(
@@ -220,6 +221,7 @@ def update_draft(session, story_id, body: DraftInput):
                     "destinations",
                     "social_caption",
                     "scheduled_at",
+                    "news_bite",
                 },
             ),
             "summary": body.summary,
@@ -233,6 +235,9 @@ def update_draft(session, story_id, body: DraftInput):
     )
     session.add(version)
     session.flush()
+    from app.newsbite.service import attach_render
+
+    attach_render(version)
     for credit in body.credits:
         session.add(
             StorySource(
