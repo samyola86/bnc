@@ -134,6 +134,14 @@ def block(text, size, width, serif=False):
 
 
 def layout(config, category="", photo_credit=""):
+    if (
+        config.template_version == 2
+        and config.layout_version == 2
+        and config.template_id in {"dark-editorial", "breaking-news"}
+    ):
+        from .photographic import layout as photographic_layout
+
+        return photographic_layout(config, category, photo_credit)
     t = TEMPLATES[config.template_id]
     errors = []
     if not config.headline.strip():
@@ -218,6 +226,14 @@ def draw_block(
 
 
 def render(config: NewsBite, photo=None, category="", photo_credit=""):
+    if (
+        config.template_version == 2
+        and config.layout_version == 2
+        and config.template_id in {"dark-editorial", "breaking-news"}
+    ):
+        from .photographic import render as photographic_render
+
+        return photographic_render(config, photo, category, photo_credit)
     t = TEMPLATES[config.template_id]
     scene, errors = layout(config, category, photo_credit)
     warnings = []
@@ -383,7 +399,26 @@ def render(config: NewsBite, photo=None, category="", photo_credit=""):
 
 
 def definitions():
-    return [
+    values = [
         {"id": key, "version": 1, "layout_version": 1, **asdict(value)}
         for key, value in TEMPLATES.items()
     ]
+    for value in values:
+        if value["id"] in {"dark-editorial", "breaking-news"}:
+            breaking = value["id"] == "breaking-news"
+            value.update(
+                version=2,
+                layout_version=2,
+                legacy_versions=[1],
+                full_bleed=True,
+                x=320 if breaking else 68,
+                width=700 if breaking else 884,
+                headline_preferred=68 if breaking else 80,
+                headline_min=44,
+                image_min=300,
+                image_max=615,
+                top=180,
+                bottom=1220,
+                priority="reserve header/footer; fit text above minimum clear photo zone",
+            )
+    return values

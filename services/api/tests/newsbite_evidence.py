@@ -25,6 +25,8 @@ def generate(photo_path, output):
         ):
             config = NewsBite(
                 template_id=template,
+                template_version=2 if template in {"dark-editorial", "breaking-news"} else 1,
+                layout_version=2 if template in {"dark-editorial", "breaking-news"} else 1,
                 headline=headline,
                 highlight="Bangladesh"
                 if row == 0
@@ -62,6 +64,8 @@ def generate(photo_path, output):
         ):
             config = NewsBite(
                 template_id=template,
+                template_version=2 if template in {"dark-editorial", "breaking-news"} else 1,
+                layout_version=2 if template in {"dark-editorial", "breaking-news"} else 1,
                 headline=headline,
                 highlight="নির্ভরযোগ্য সংবাদ",
                 supporting="সঠিক তথ্য, স্পষ্ট প্রেক্ষাপট এবং মানুষের কথা।",

@@ -519,3 +519,9 @@ from overwriting typing immediately after saving.
 
 See [News Bite templates](api/news-bite-templates.md) for versions, constraints, storage,
 runtime requirements, evidence, reproduction and differences from the reference artwork.
+
+The corrected Dark Editorial and Breaking News designs use template/layout version 2:
+full-background photography, reference-led typography/decorations, continuous gradients
+and a 300px locked breaking rail. Earlier version-1 snapshots remain reproducible and
+approved PNGs are never rewritten. Selecting the updated design creates a new revision
+through the existing save/review path.

@@ -9,7 +9,7 @@ import { CoverImage, type StoryDetails } from "./story-details";
 
 export type NewsBite = {
   template_id: "newspaper" | "dark-editorial" | "breaking-news" | "modern-magazine";
-  template_version: 1; layout_version: 1; headline: string; highlight: string; supporting: string;
+  template_version: 1 | 2; layout_version: 1 | 2; headline: string; highlight: string; supporting: string;
   speaker: string; source_credit: string; publication_date: string | null;
   focal_x: number; focal_y: number; image_rights: "unverified" | "owned" | "licensed" | "prohibited"; footer: string;
 };
@@ -46,10 +46,12 @@ export function NewsBiteEditor({ id, value, onChange, details, onDetails, catego
     return () => { active = false; clearTimeout(timer); controller.abort(); };
   }, [id, key, onValidity]);
   const change = <K extends keyof NewsBite>(field: K, next: NewsBite[K]) => onChange({ ...value, [field]: next });
+  const selectTemplate = (id: NewsBite["template_id"]) => onChange({ ...value, template_id: id, template_version: id === "dark-editorial" || id === "breaking-news" ? 2 : 1, layout_version: id === "dark-editorial" || id === "breaking-news" ? 2 : 1 });
   const src = current ? `data:image/png;base64,${current.png}` : undefined;
   return <section aria-label="News Bite template editor" className="grid items-start gap-6 lg:grid-cols-2">
     <div className="space-y-5"><Card><CardHeader><CardTitle>News Bite design</CardTitle></CardHeader><CardContent className="space-y-5">
-      <Field label="Template" validationKey="news_bite" group><div className="grid grid-cols-2 gap-3">{templates.map(([id, name, number]) => <button type="button" key={id} aria-pressed={value.template_id === id} onClick={() => change("template_id", id)} className={`rounded-lg border-2 p-2 text-left text-xs font-semibold ${value.template_id === id ? "border-primary bg-primary/5" : "border-border"}`}><img className="mb-2 aspect-[4/5] w-full rounded object-cover" src={`/templates/thumbnails/${id}.png`} alt={`${name} template thumbnail`} />{number} · {name}</button>)}</div></Field>
+      <Field label="Template" validationKey="news_bite" group><div className="grid grid-cols-2 gap-3">{templates.map(([id, name, number]) => <button type="button" key={id} aria-pressed={value.template_id === id} onClick={() => selectTemplate(id)} className={`rounded-lg border-2 p-2 text-left text-xs font-semibold ${value.template_id === id ? "border-primary bg-primary/5" : "border-border"}`}><img className="mb-2 aspect-[4/5] w-full rounded object-cover" src={`/templates/thumbnails/${id}.png`} alt={`${name} template thumbnail`} />{number} · {name}</button>)}</div></Field>
+      {value.template_version === 1 && ["dark-editorial", "breaking-news"].includes(value.template_id) && <div className="rounded-lg border bg-muted p-3 text-sm"><p>This draft uses the earlier layout. Apply the corrected reference design, then save a new revision for review.</p><Button type="button" className="mt-3" onClick={() => selectTemplate(value.template_id)}>Use matching reference layout</Button></div>}
       <Field label="Graphic headline" validationKey="news_bite_headline"><textarea rows={4} maxLength={1500} className={fieldClass} value={value.headline} onChange={e => change("headline", e.target.value)} /></Field>
       <Field label="Highlighted headline segment"><textarea rows={2} maxLength={1500} className={fieldClass} value={value.highlight} onChange={e => change("highlight", e.target.value)} /></Field>
       <p className="text-xs text-muted-foreground">Paste the exact text to emphasize. The first matching segment is colored; text is never duplicated.</p>

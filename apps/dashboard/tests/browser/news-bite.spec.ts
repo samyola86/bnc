@@ -39,6 +39,7 @@ test("adaptive News Bite templates, save/reopen, exact PNG export and Article pr
     }
     await expect(page.getByLabel("facebook caption", { exact: true })).toHaveValue("Facebook reporting #BNC");
   }
+  await page.getByRole("button", { name: /BNC Dark Editorial/ }).click();
   await page.getByLabel("Photo focal point horizontal").fill("0.1");
   await expect(page.getByRole("status").filter({ hasText: "Updating preview" })).toHaveCount(0);
   const src = await live.getAttribute("src");
@@ -56,7 +57,10 @@ test("adaptive News Bite templates, save/reopen, exact PNG export and Article pr
   await expect(page.getByText(/Revision 2/).first()).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("Photo focal point horizontal")).toHaveValue("0.1");
-  await expect(page.getByRole("button", { name: /BNC Modern Magazine/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /BNC Dark Editorial/ })).toHaveAttribute("aria-pressed", "true");
+  const saved = await (await page.request.get(`/api/newsroom/stories/${page.url().split("/").at(-1)}`)).json();
+  expect(saved.news_bite.template_version).toBe(2);
+  expect(saved.news_bite.layout_version).toBe(2);
   await expect(page.getByLabel("facebook caption", { exact: true })).toHaveValue("Facebook reporting #BNC");
   await page.getByLabel("Graphic headline", { exact: true }).fill("Bangladesh " .repeat(140));
   await expect(page.getByRole("alert").filter({ hasText: "Text does not fit" })).toBeVisible();

@@ -1,10 +1,17 @@
 # News Bite visual evidence
 
 The original four reference designs were inspected and compared with these adaptive
-recreations. Typography, decoration and photo placement differ from the taller references;
-these are not pixel-perfect reproductions. Reference screenshots are not used as backgrounds.
+recreations. The corrected version-2 Dark Editorial and Breaking News use full-background
+photographs, matching header hierarchy, geometric typography, gradients and the locked
+breaking rail. The output stays 4:5; original reference photographs are replaceable.
+Reference screenshots are not used as backgrounds.
 The photograph is the previously supplied BNC newsroom background. All examples are
 verification artwork, not published news or evidence of external platform delivery.
+
+[Before/after correction](correction/before-after.png) shows the earlier framed layouts
+beside the corrected designs using the reference headline, highlight, attribution and
+supporting sentence. [Dark Editorial](correction/dark-editorial-v2.png) ·
+[Breaking News](correction/breaking-news-v2.png).
 
 Every **export** below is a real **1080 × 1350 PNG**. Browser screenshots show the responsive
 preview at its displayed size. PNG byte equality was checked both for browser download

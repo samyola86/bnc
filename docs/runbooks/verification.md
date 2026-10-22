@@ -134,3 +134,27 @@ See [News Bite templates](../api/news-bite-templates.md) for exact constraints, 
 differences, API/storage details and reproduction. No real account was used, no newsroom
 story was changed by the browser tests, no paid AI call was made, and nothing was sent to
 an external publishing platform. Browser databases use disposable schemas.
+
+### Photographic-template visual correction
+
+The earlier Dark Editorial and Breaking News compositions did not match the supplied
+references: they placed photographs in separate frames and changed the typography and
+rail proportions. Both are corrected as template/layout version 2, with full-background
+photos, geometric Poppins English typography, Bengali shaping, centered tracked branding,
+date treatment, smooth lower fades, quotation and social motifs, right-side CTA, curved
+red corners, and a fixed 300px outlined breaking-news rail. The first highlighted phrase
+starts a separate line without changing stored text. Output remains 1080 × 1350.
+
+The full backend suite passes **196 tests**. The final typography passes **22 targeted
+layout/parity/approval checks**, and the final corner/fade changes pass both photographic
+pixel-regression checks. The updated Chromium News Bite scenario passes, including
+version-2 save/reopen, exact PNG download, Article preservation and submission review.
+ESLint, TypeScript, Ruff and the normal production build pass. The reference-text
+[before/after comparison](../evidence/newsbite/correction/before-after.png) and native
+PNG examples were inspected. Examples use BNC's supplied newsroom photo; no photograph
+was extracted from the reference designs.
+
+Version-1 rendering remains available for existing saved graphics. Clicking a photo
+template selects version 2; existing drafts offer **Use matching reference layout**.
+Saving creates a new revision and invalidates prior approval. Previously approved PNGs
+are never replaced in place. No migration or authentication change is introduced.

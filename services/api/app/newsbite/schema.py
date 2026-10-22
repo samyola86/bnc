@@ -10,8 +10,8 @@ class NewsBite(BaseModel):
     template_id: Literal["newspaper", "dark-editorial", "breaking-news", "modern-magazine"] = (
         "newspaper"
     )
-    template_version: Literal[1] = 1
-    layout_version: Literal[1] = 1
+    template_version: Literal[1, 2] = 1
+    layout_version: Literal[1, 2] = 1
     headline: str = Field(default="", max_length=1500)
     highlight: str = Field(default="", max_length=1500)
     supporting: str = Field(default="", max_length=5000)
@@ -25,6 +25,13 @@ class NewsBite(BaseModel):
 
     @model_validator(mode="after")
     def highlight_exists(self):
+        if self.template_version != self.layout_version:
+            raise ValueError("Template and layout versions must match")
+        if self.template_version == 2 and self.template_id not in {
+            "dark-editorial",
+            "breaking-news",
+        }:
+            raise ValueError("Version 2 is available for Dark Editorial and Breaking News")
         if self.highlight and self.highlight not in self.headline:
             raise ValueError("Highlighted segment must occur exactly in the graphic headline")
         if self.highlight:

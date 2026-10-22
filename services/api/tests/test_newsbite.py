@@ -132,7 +132,10 @@ def bucket(monkeypatch):
     return value
 
 
-def test_preview_persistence_revision_approval_and_byte_parity(newsroom, bucket):  # noqa: F811
+@pytest.mark.parametrize(
+    "template,version", [("newspaper", 1), ("dark-editorial", 2), ("breaking-news", 2)]
+)
+def test_preview_persistence_revision_approval_and_byte_parity(newsroom, bucket, template, version):  # noqa: F811
     client, factory, _ = newsroom
     photo = io.BytesIO()
     Image.new("RGB", (1300, 1300), "navy").save(photo, "PNG")
@@ -140,6 +143,9 @@ def test_preview_persistence_revision_approval_and_byte_parity(newsroom, bucket)
         "/api/v1/media", json={"data": base64.b64encode(photo.getvalue()).decode()}
     ).json()["id"]
     config = NewsBite(
+        template_id=template,
+        template_version=version,
+        layout_version=version,
         headline="Original reporting for a stronger Bangladesh",
         highlight="stronger Bangladesh",
         publication_date=date.today(),

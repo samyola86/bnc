@@ -13,11 +13,12 @@ does not save, approve or publish.
 | ID | Version | Identity | Photo position | Headline size, preferred/minimum |
 | --- | --- | --- | --- | --- |
 | `newspaper` | 1 | Warm paper, serif masthead, black rules, deep-blue emphasis | Below writing | 64 / 40 px |
-| `dark-editorial` | 1 | Navy, photo gradient, modern white type, red emphasis | Above writing | 70 / 42 px |
-| `breaking-news` | 1 | Fixed red vertical rail, outlined BREAKING NEWS, blue emphasis | Above writing | 66 / 40 px |
+| `dark-editorial` | 2 | Full-background photo, lower fade, centered letter-spaced branding, red emphasis, quote bubble and vertical CTA | Full canvas | 80 / 44 px |
+| `breaking-news` | 2 | Full-background photo, 300px locked red rail, large outlined BREAKING NEWS, blue emphasis | Behind writing, beside rail | 68 / 44 px |
 | `modern-magazine` | 1 | Red/white background, rounded card/photo, category pill, blue emphasis | Above writing | 62 / 38 px |
 
-All templates have layout version **1** and output **1080 × 1350 RGB PNG**. Definitions
+Template/layout versions match: Newspaper and Magazine use **1**; the corrected Dark
+Editorial and Breaking News designs use **2**. All output **1080 × 1350 RGB PNG**. Definitions
 and bounds live in `app/newsbite/renderer.py`; adding/changing approved templates requires
 an application release. A graphical template builder is not part of this phase.
 
@@ -26,11 +27,21 @@ They were renamed by visual identity to the four requested filenames in
 `apps/dashboard/public/templates/references/`. All four were inspected. They are design
 references, never runtime backgrounds. The app gallery uses generated thumbnails.
 
-These are adaptive recreations rather than pixel-perfect copies: the reference artwork
-uses a taller aspect ratio, different typography, fuller background photographs and
-additional ornamental details. The fixed 4:5 output reserves safe text/photo zones;
-photographs do not run behind the main headline. Reference social icons and decorative
-SWIPE controls do not claim working social links or a multi-slide carousel.
+The photographic templates were corrected after visual review: version 1 incorrectly
+placed the photograph in a separate frame. Version 2 uses full-background photography,
+Poppins ExtraBold/Regular English typography, shaped Noto Bengali, reference-style header,
+date, quotation bubble, arcs, social symbols, vertical CTA, red corner curves and a wider
+outlined breaking-news rail. Headline emphasis begins on its own line when preceded by
+whitespace, without changing the saved headline or highlight offsets.
+
+The references are taller than 4:5, so spacing is adapted to the required 1080 × 1350 canvas.
+The editor supplies the photograph; the person embedded in a reference is not extracted
+or automatically reused. Social symbols and carousel dots are decorative, not active links.
+
+Version 1 remains reproducible for previously saved revisions and approvals. Selecting a
+photographic template now chooses version 2. An existing version-1 draft offers **Use
+matching reference layout**; this preserves content and requires saving a new revision.
+It never replaces a previously approved PNG in place.
 
 ## Layout and Unicode
 
@@ -43,14 +54,23 @@ credits reserve up to 160 px and the footer up to 100 px. Photo bounds are 280�
 (Breaking minimum 300; Magazine maximum 550). Gaps are 24 px. Exact per-template margins,
 bounds and priorities are returned by `GET /news-bite/templates`.
 
+For version-2 photographic designs, the photo covers the full canvas (beside the fixed
+300px Breaking rail). The headline moves within the lower composition as text grows,
+preserving at least 300px of clear photo below the header. Text remains within y=480–1220,
+with a separate footer. Main text widths are 884px (Dark) and 700px (Breaking). Text shrinks
+within the listed minimums and a continuous lower gradient maintains contrast. Speaker
+attribution and supporting text follow the reference-specific order. Category and Breaking
+footer values are retained in configuration even where these designs do not display them.
+
 Text is never truncated, hidden or stretched to manufacture a fit. An unbreakable word
 that exceeds its zone also fails fitting. Impossible content displays explicit editing
 warnings and a non-exportable diagnostic canvas. Shorten the text or change template.
 Incomplete drafts can still save and reopen. Submission/approval/READY require a valid
 render. No smaller-than-minimum font fallback is used.
 
-Bundled Noto Sans Bengali and Noto Serif Bengali variable fonts provide English/Bengali
-glyphs. Pillow uses **Raqm/HarfBuzz** shaping; API images install `libraqm0` and fail clearly
+Bundled Noto Sans Bengali and Noto Serif Bengali variable fonts provide Bengali glyphs;
+Poppins Regular/ExtraBold matches the corrected photo designs' English typography.
+Pillow uses **Raqm/HarfBuzz** shaping; API images install `libraqm0` and fail clearly
 if shaping/fonts are unavailable. Font files and SIL Open Font Licenses ship with the
 Python package. There is no external browser-font dependency.
 
