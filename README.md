@@ -56,3 +56,10 @@ Individual accounts now use three roles: SUPERADMIN, EDITOR and CONTENT_WRITER. 
 TipTap rich text, complete taxonomy/media workflows, automatic scheduled platform delivery, SSE, and WordPress/social integrations. Individual HttpOnly server-side sessions now authenticate users; the legacy `INGESTION_API_TOKEN` is no longer accepted. Public RSS/Atom and JSON Feed collection needs no external API keys. The full publishing vertical slice in architecture section 19 remains planned; AI never publishes or approves stories.
 
 The supplied logo is absent, so a text wordmark is used until the original asset is supplied; see `public/brand/README.md`. The available `html demo/Newsroom_Dashboard(2).html` supplies the editorial layout/workflow reference. Bengali/English input is supported, timestamps are stored in UTC, and the interface identifies Asia/Dhaka as the display timezone.
+## Adaptive News Bite graphics
+
+The existing Story Editor's **News bite** format supports four adaptive BNC templates,
+English/Bengali typography, live 4:5 preview, focal cropping, exact 1080 × 1350 PNG export
+and revision-bound graphic/caption approval. [Usage and implementation](docs/api/news-bite-templates.md)
+· [Sample designs](docs/evidence/newsbite/contact-sheet.png). Rebuild API/worker/scheduler
+images for Bengali text shaping; no new database migration or secret is required.

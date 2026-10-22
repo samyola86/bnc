@@ -73,7 +73,7 @@ export function NewsBiteEditor({ id, value, onChange, details, onDetails, catego
       {current?.warnings.map(message => <p role="status" key={message} className="rounded bg-amber-50 p-3 text-sm text-amber-900">{message}</p>)}
       {src && <img src={src} alt="Live News Bite graphic" width={1080} height={1350} className="aspect-[4/5] w-full rounded shadow-lg" />}
       <div className="flex flex-wrap gap-3"><Button type="button" variant="outline" disabled={!current || !!current.errors.length} onClick={() => setEnlarged(true)}>Enlarge preview</Button>{src && !current?.errors.length && details.cover_image_id && <Button asChild><a download={`bnc-${value.template_id}.png`} href={src}>Export PNG</a></Button>}</div>
-      <p className="text-xs text-muted-foreground">PNG exports use these exact preview bytes. Save revision attaches the graphic for editorial review. Exporting does not save or publish.</p>
+      <p className="text-xs text-muted-foreground">Your PNG download matches this preview. Save revision to attach the graphic for editorial review. Exporting does not save or publish.</p>
     </CardContent></Card></aside>
     {enlarged && src && <div role="dialog" aria-modal="true" aria-label="Enlarged News Bite preview" onKeyDown={e => { if (e.key === "Escape") setEnlarged(false); if (e.key === "Tab") e.preventDefault(); }} className="fixed inset-0 z-50 overflow-auto bg-black/90 p-5"><Button type="button" autoFocus onClick={() => setEnlarged(false)} className="sticky top-0">Close enlarged preview</Button><img src={src} alt="Enlarged News Bite graphic" width={1080} height={1350} className="mx-auto h-auto max-w-full" /></div>}
   </section>;

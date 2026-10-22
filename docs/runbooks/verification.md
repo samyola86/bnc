@@ -90,3 +90,47 @@ Added strict AUTH_ADDITIONAL_ORIGINS validation alongside the backward-compatibl
 Verification: 130 backend tests passed, 1 test skipped; 9 proxy tests passed. Backend coverage includes Writer/Superadmin MFA and session lifecycle on both origins, cookie host isolation, invalid origins, forwarding-header spoofing and production Secure policy. Ruff, frontend ESLint/TypeScript and the Next.js production build passed. The broader suite also exposed SQLite incompatibility in the previously pending timestamp-default repair; it now uses Alembic batch alteration and migration tests pass.
 
 The API and dashboard were recreated with AUTH_ADDITIONAL_ORIGINS supplied through the process environment; the existing .env was not edited. A hidden ngrok process forwards only the requested public hostname to localhost:3000. Live localhost and ngrok login pages and the public Next.js asset returned 200, invalid credentials from valid origins reached authentication (401), and untrusted origins returned 403. No live account credentials or MFA secrets were used by these smoke checks. Add the documented non-secret variable to .env for future Compose recreations. Backend ports, database configuration, credentials and Docker volumes were preserved.
+
+## Adaptive News Bite graphics — 22 October 2026
+
+Four supplied references were inspected and renamed by their actual visual identity,
+correcting doubled PNG extensions and swapped design labels. The four programmatic
+templates preserve distinct newspaper, dark editorial, breaking-news and magazine styling.
+They are adaptive recreations at 4:5, not pixel-perfect copies of the taller references.
+Photo-safe text zones, bundled fonts and some decorations differ intentionally. No
+reference screenshot is used as a background or exported as a finished template.
+
+The final complete backend suite passed **175 tests** with PostgreSQL and real media checks
+enabled. Including explicit PostgreSQL News Bite history and artifact/caption checks,
+the final targeted graphics suite passed **44 tests**. Coverage includes all four
+templates with 5/15/30/50-word English and Bengali headlines; bounded wrapping or explicit
+overflow; invalid highlight ranges; landscape, portrait, square, low-resolution and
+edge-subject crops; source-image preservation; deterministic 1080 × 1350 PNGs; byte equality
+between preview and the saved graphic; JSON save/reopen; immutable revisions; stale writes;
+rights/captions; ownership and Writer restrictions; exact-revision approval/READY and
+approval invalidation after crop/caption edits. The existing Starlette test-client
+deprecation warning remains.
+
+Chromium passed the new full News Bite scenario, both AI-preview scenarios and the
+existing Article readiness/Writer-to-independent-Editor approval scenario together.
+The separate existing Superadmin MFA/account/task scenario also passed. News Bite browser
+coverage includes template gallery switching without lost input, live text/image preview,
+saved crop/template/caption restoration, explicit overflow, exact 1080 × 1350 download,
+preview/download byte equality, enlargement, Article preservation and the actual saved
+PNG in the review screen. Browser testing found and fixed a save-refresh race that could
+otherwise overwrite typing immediately after saving a revision.
+
+Frontend ESLint, TypeScript, the normal Turbopack `npm run build`, an isolated webpack
+production build and all **9 proxy security tests** passed. `alembic check` reports no
+new upgrade operations. No migration is needed: configuration and render metadata use
+the existing immutable story JSON. Private originals and new rendered assets use the
+existing media bucket and authenticated retrieval routes.
+
+Full-size examples and eight browser screenshots are in
+[`docs/evidence/newsbite`](../evidence/newsbite/). Both English and Bengali contact sheets
+were visually inspected, including short/long examples of every template. Samples use the
+already supplied newsroom background rather than extracting the reference photographs.
+See [News Bite templates](../api/news-bite-templates.md) for exact constraints, known
+differences, API/storage details and reproduction. No real account was used, no newsroom
+story was changed by the browser tests, no paid AI call was made, and nothing was sent to
+an external publishing platform. Browser databases use disposable schemas.

@@ -1,5 +1,13 @@
 # Revision-bound editorial review
 
+News Bites additionally require a valid 1080 × 1350 PNG bound to the submitted immutable
+revision. Review displays that saved graphic and its platform captions. Submit, approve
+and READY verify the stored image's hash/dimensions, current input fingerprint, template
+layout, photograph rights and required captions. Missing credits remain a warning;
+prohibited source rights and unconfirmed/prohibited photograph rights block readiness.
+Article body is not required for a graphic-only News Bite. All existing role, ownership,
+concurrency and approval-invalidation rules still apply. See [News Bite templates](news-bite-templates.md).
+
 The existing `publishing_requests` table now records submissions and current review outcomes. New `review_decisions` rows preserve each submission, approval, requested change, rejection, withdrawal and invalidation. No approval rewrites an immutable story version or implies publication.
 
 | Action | Preconditions | Story state | Request outcome |

@@ -1,5 +1,9 @@
 # Story media and publishing preparation
 
+**22 October 2026:** News Bite now has four adaptive graphic templates, private revision-bound
+PNG assets, and exact graphic/caption review. See [Adaptive News Bite editor](news-bite-templates.md)
+for layout bounds, crops, persistence and export contracts. Article behavior remains available.
+
 **19 October 2026 update:** Individual account sessions and the three-role policy supersede the earlier shared-editor authorization described below. Send to Publishing now submits for exact-revision review; approval and READY authorization are implemented, while external delivery remains disabled. See [Authentication and RBAC](authentication-and-rbac.md), [Editorial approval](editorial-approval.md) and [Task assignment](task-assignment.md).
 
 The shared candidate/manual editor retains AI drafting, immutable revisions, stale-write protection and versioned source credits. It now also saves:

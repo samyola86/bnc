@@ -499,3 +499,23 @@ Additive migration `e41b02a77d31` extends users and existing publication request
 The operational flow is Login → Assigned Task → Draft → Readiness Validation → IN_REVIEW → APPROVED → READY. Rejection returns the story for changes while recording REJECTED on the request; withdrawal returns DRAFT with history. Self-approval is denied for Editors and requires an explicit reasoned Superadmin exception. Edits invalidate approval; platform authorization always remains bound to the submitted immutable revision. READY never means PUBLISHED. External WordPress/Facebook/Instagram delivery is explicitly excluded from this phase.
 
 See the account, task and editorial API guides for route contracts, security settings, current list limits, deployment prerequisites and implementation limitations.
+
+## 22. Implemented adaptive News Bite editor (22 October 2026)
+
+The shared Story Editor now switches between existing Article writing and a full-page
+structured News Bite workspace with four versioned application templates. A single
+Pillow/Raqm renderer measures Bengali/English text, reallocates bounded text/photo zones,
+applies emphasis and focal crops, and returns exact 1080 × 1350 PNGs for live preview and
+download. Reference artwork is never used as a fixed background. Overflow blocks export
+and review rather than clipping text.
+
+Existing StoryVersion JSON stores graphic configuration and server-generated render
+metadata; private assets reuse MinIO and `/media`. No table/migration, parallel editor,
+review workflow or publishing queue is introduced. Review authorization verifies the
+exact saved graphic's hash, dimensions, input fingerprint and immutable revision binding.
+Changes to graphics or captions invalidate approval through the existing save path.
+The editor also updates its saved baseline in place, preventing an asynchronous refresh
+from overwriting typing immediately after saving.
+
+See [News Bite templates](api/news-bite-templates.md) for versions, constraints, storage,
+runtime requirements, evidence, reproduction and differences from the reference artwork.
