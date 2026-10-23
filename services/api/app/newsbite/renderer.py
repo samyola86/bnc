@@ -134,6 +134,10 @@ def block(text, size, width, serif=False):
 
 
 def layout(config, category="", photo_credit=""):
+    if config.template_id == "newspaper" and config.template_version == 2:
+        from .newspaper import layout as newspaper_layout
+
+        return newspaper_layout(config, category, photo_credit)
     if (
         config.template_version == 2
         and config.layout_version == 2
@@ -226,6 +230,10 @@ def draw_block(
 
 
 def render(config: NewsBite, photo=None, category="", photo_credit=""):
+    if config.template_id == "newspaper" and config.template_version == 2:
+        from .newspaper import render as newspaper_render
+
+        return newspaper_render(config, photo, category, photo_credit)
     if (
         config.template_version == 2
         and config.layout_version == 2
@@ -420,5 +428,25 @@ def definitions():
                 top=180,
                 bottom=1220,
                 priority="reserve header/footer; fit text above minimum clear photo zone",
+            )
+    for value in values:
+        if value["id"] == "newspaper":
+            from .newspaper import GRID
+
+            value.update(
+                version=2,
+                layout_version=2,
+                legacy_versions=[1],
+                x=GRID["x"],
+                width=GRID["right"] - GRID["x"] + 1,
+                top=GRID["story_top"],
+                bottom=GRID["bottom"],
+                headline_preferred=GRID["headline_preferred"],
+                headline_min=GRID["headline_min"],
+                image_min=GRID["image_min"],
+                image_max=GRID["image_max"],
+                gap=GRID["gap"],
+                max_lines=8,
+                grid=GRID,
             )
     return values

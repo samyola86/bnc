@@ -24,7 +24,7 @@ dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.9,<1"]
 include = ["app*"]
 
 [tool.setuptools.package-data]
-"app.newsbite" = ["fonts/*.ttf", "fonts/*.txt"]
+"app.newsbite" = ["fonts/*.ttf", "fonts/*.txt", "assets/*.svg", "assets/*.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

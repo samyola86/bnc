@@ -23,6 +23,8 @@ def test_news_bite_json_round_trip_and_immutable_history(postgres, monkeypatch):
             app, cookies=session_cookie(postgres), headers={"Origin": "http://localhost:3000"}
         ) as client:
             config = NewsBite(
+                template_version=2,
+                layout_version=2,
                 headline="বাংলাদেশের নাগরিকদের জন্য নির্ভরযোগ্য সংবাদ",
                 highlight="নির্ভরযোগ্য সংবাদ",
                 publication_date=date(2026, 10, 22),

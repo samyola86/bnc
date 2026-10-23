@@ -88,8 +88,8 @@ def test_matching_versions_and_current_template_catalog():
     with pytest.raises(ValueError):
         NewsBite(template_version=2, layout_version=1)
     with pytest.raises(ValueError):
-        NewsBite(template_id="newspaper", template_version=2, layout_version=2)
+        NewsBite(template_id="modern-magazine", template_version=2, layout_version=2)
     items = {item["id"]: item for item in definitions()}
     assert items["dark-editorial"]["version"] == 2
     assert items["breaking-news"]["full_bleed"]
-    assert items["newspaper"]["version"] == 1
+    assert items["newspaper"]["version"] == 2

@@ -1,0 +1,103 @@
+{
+  "reference_size": [
+    1254,
+    1254
+  ],
+  "horizontal_scale": 0.861244019138756,
+  "grid": {
+    "x": 51,
+    "right": 1029,
+    "top_rule": 39,
+    "top_weight": 5,
+    "masthead_y": 66,
+    "masthead_width": 940,
+    "masthead_height": 130,
+    "masthead_center": 545,
+    "corporation_y": 219,
+    "corporation_width": 770,
+    "corporation_rule": 261,
+    "corporation_weight": 5,
+    "metadata_y": 278,
+    "metadata_size": 23,
+    "metadata_rule": 308,
+    "double_rule": 320,
+    "story_top": 345,
+    "bottom": 1299,
+    "photo_gap": 17,
+    "photo_border": 2,
+    "separator_weight": 2,
+    "gap": 18,
+    "headline_preferred": 129,
+    "headline_min": 40,
+    "image_min": 280,
+    "image_max": 900
+  },
+  "rendered_header_bounds": {
+    "masthead": [
+      75,
+      66,
+      1015,
+      196
+    ],
+    "date": [
+      51,
+      278,
+      445,
+      301
+    ],
+    "website": [
+      826,
+      278,
+      1030,
+      297
+    ],
+    "corporation": [
+      155,
+      219,
+      925,
+      242
+    ]
+  },
+  "reference_bounds_normalized": {
+    "masthead": [
+      75,
+      66,
+      1015,
+      199
+    ],
+    "corporation": [
+      155,
+      219,
+      925,
+      242
+    ],
+    "date_left": 51,
+    "website_right": 1029,
+    "rules_y": [
+      39,
+      261,
+      308,
+      320
+    ],
+    "photo_separator_y": 751,
+    "photo_top_y": 768
+  },
+  "placeholder_separator_y": 744,
+  "paper_rgb_center": [
+    241,
+    237,
+    224
+  ],
+  "story_publication_date": "2026-10-22",
+  "story_focal_point": [
+    0.06,
+    0.12
+  ],
+  "fonts": {
+    "masthead": "DM Serif Display + 2px ink spread",
+    "headline": "Anton",
+    "metadata": "Libre Baskerville Bold",
+    "bengali": "Noto Sans/Serif Bengali via Raqm"
+  },
+  "font_identity": "Licensed approximations; original fonts unverified"
+}

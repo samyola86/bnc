@@ -7,6 +7,7 @@ Version 1 remains available for immutable saved revisions. Coordinates are nativ
 import io
 import math
 from functools import lru_cache
+from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
 
@@ -173,16 +174,13 @@ def text_block(canvas, block, x, y, color="white", highlight=None, accent=None):
     return y
 
 
-def icons(draw):
-    y = 115
-    draw.rounded_rectangle((812, y, 838, y + 26), radius=7, outline="white", width=2)
-    draw.ellipse((819, y + 7, 831, y + 19), outline="white", width=2)
-    draw.ellipse((831, y + 4, 834, y + 7), fill="white")
-    for x, letter in [(866, "f"), (922, "X")]:
-        draw.ellipse((x, y - 1, x + 29, y + 28), fill="white")
-        draw.text((x + 8, y + 1), letter, font=latin(22, True), fill="#10131a", anchor="lt")
-    draw.rounded_rectangle((978, y + 1, 1012, y + 25), radius=9, fill="white")
-    draw.polygon([(990, y + 6), (990, y + 20), (1002, y + 13)], fill="#10131a")
+@lru_cache(maxsize=1)
+def quote_bubble():
+    # Transparent 3x raster of the supplied SVG, including its gradients/glow.
+    # Rasterized offline; runtime preview and export need only Pillow.
+    path = Path(__file__).parent / "assets" / "BNC_Quote_Bubble.png"
+    with Image.open(path) as source:
+        return source.convert("RGBA").resize((205, 205), Image.Resampling.LANCZOS)
 
 
 def render(config, photo, category="", photo_credit=""):
@@ -272,13 +270,8 @@ def render(config, photo, category="", photo_credit=""):
     else:
         spaced(d, (68, 111), date_label, 22, 3)
         d.rectangle((68, 147, 158, 152), fill="#ff1828")
-        icons(d)
-        # Speech-bubble quotation motif, built from editable vector primitives.
-        d.ellipse((119, 214, 259, 354), outline="#ff1029", width=6)
-        d.polygon([(127, 318), (119, 358), (162, 340)], fill="#101923", outline="#ff1029", width=4)
-        for qx in (148, 195):
-            d.polygon([(qx, 290), (qx + 13, 250), (qx + 43, 250), (qx + 25, 290)], fill="white")
-            d.ellipse((qx, 274, qx + 35, 310), fill="white")
+        bubble = quote_bubble()
+        canvas.paste(bubble, (85, 182), bubble)
         vertical = Image.new("RGBA", (900, 55))
         spaced(
             ImageDraw.Draw(vertical),

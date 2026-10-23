@@ -18,7 +18,7 @@ export const templates = [
   ["breaking-news", "BNC Breaking News", "03"], ["modern-magazine", "BNC Modern Magazine", "04"],
 ] as const;
 export function initialNewsBite(headline: string, supporting: string): NewsBite {
-  return { template_id: "newspaper", template_version: 1, layout_version: 1, headline, supporting,
+  return { template_id: "newspaper", template_version: 2, layout_version: 2, headline, supporting,
     highlight: "", speaker: "", source_credit: "", publication_date: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()),
     focal_x: .5, focal_y: .5, image_rights: "unverified", footer: "Trusted News. A Stronger Bangladesh." };
 }
@@ -46,12 +46,12 @@ export function NewsBiteEditor({ id, value, onChange, details, onDetails, catego
     return () => { active = false; clearTimeout(timer); controller.abort(); };
   }, [id, key, onValidity]);
   const change = <K extends keyof NewsBite>(field: K, next: NewsBite[K]) => onChange({ ...value, [field]: next });
-  const selectTemplate = (id: NewsBite["template_id"]) => onChange({ ...value, template_id: id, template_version: id === "dark-editorial" || id === "breaking-news" ? 2 : 1, layout_version: id === "dark-editorial" || id === "breaking-news" ? 2 : 1 });
+  const selectTemplate = (id: NewsBite["template_id"]) => onChange({ ...value, template_id: id, template_version: id !== "modern-magazine" ? 2 : 1, layout_version: id !== "modern-magazine" ? 2 : 1 });
   const src = current ? `data:image/png;base64,${current.png}` : undefined;
   return <section aria-label="News Bite template editor" className="grid items-start gap-6 lg:grid-cols-2">
     <div className="space-y-5"><Card><CardHeader><CardTitle>News Bite design</CardTitle></CardHeader><CardContent className="space-y-5">
-      <Field label="Template" validationKey="news_bite" group><div className="grid grid-cols-2 gap-3">{templates.map(([id, name, number]) => <button type="button" key={id} aria-pressed={value.template_id === id} onClick={() => selectTemplate(id)} className={`rounded-lg border-2 p-2 text-left text-xs font-semibold ${value.template_id === id ? "border-primary bg-primary/5" : "border-border"}`}><img className="mb-2 aspect-[4/5] w-full rounded object-cover" src={`/templates/thumbnails/${id}.png`} alt={`${name} template thumbnail`} />{number} · {name}</button>)}</div></Field>
-      {value.template_version === 1 && ["dark-editorial", "breaking-news"].includes(value.template_id) && <div className="rounded-lg border bg-muted p-3 text-sm"><p>This draft uses the earlier layout. Apply the corrected reference design, then save a new revision for review.</p><Button type="button" className="mt-3" onClick={() => selectTemplate(value.template_id)}>Use matching reference layout</Button></div>}
+      <Field label="Template" validationKey="news_bite" group><div className="grid grid-cols-2 gap-3">{templates.map(([id, name, number]) => <button type="button" key={id} aria-pressed={value.template_id === id} onClick={() => selectTemplate(id)} className={`rounded-lg border-2 p-2 text-left text-xs font-semibold ${value.template_id === id ? "border-primary bg-primary/5" : "border-border"}`}><img className="mb-2 aspect-[4/5] w-full rounded object-cover" src={`/templates/thumbnails/${id}.png?v=${id === "dark-editorial" ? "2-quote-svg" : id === "modern-magazine" ? 1 : 2}`} alt={`${name} template thumbnail`} />{number} · {name}</button>)}</div></Field>
+      {value.template_version === 1 && ["newspaper", "dark-editorial", "breaking-news"].includes(value.template_id) && <div className="rounded-lg border bg-muted p-3 text-sm"><p>This draft uses the earlier layout. Apply the corrected reference design, then save a new revision for review.</p><Button type="button" className="mt-3" onClick={() => selectTemplate(value.template_id)}>Use matching reference layout</Button></div>}
       <Field label="Graphic headline" validationKey="news_bite_headline"><textarea rows={4} maxLength={1500} className={fieldClass} value={value.headline} onChange={e => change("headline", e.target.value)} /></Field>
       <Field label="Highlighted headline segment"><textarea rows={2} maxLength={1500} className={fieldClass} value={value.highlight} onChange={e => change("highlight", e.target.value)} /></Field>
       <p className="text-xs text-muted-foreground">Paste the exact text to emphasize. The first matching segment is colored; text is never duplicated.</p>
@@ -69,6 +69,7 @@ export function NewsBiteEditor({ id, value, onChange, details, onDetails, catego
       <p className="text-xs text-muted-foreground">Adjust the crop without changing your original image. Only upload photographs you have permission to use.</p>
     </CardContent></Card>{publishing}</div>
     <aside className="space-y-4 lg:sticky lg:top-6" data-field="news_bite_render"><Card><CardHeader><CardTitle>Live graphic · 1080 × 1350</CardTitle></CardHeader><CardContent className="space-y-4">
+      <p className="text-xs text-muted-foreground">{templates.find(([id]) => id === value.template_id)?.[1]} ? Layout v{value.layout_version}</p>
       <Feedback error={error} />
       {!current && <p role="status" className="text-sm">Updating preview…</p>}
       {current?.errors.map(message => <p role="alert" key={message} className="rounded bg-red-50 p-3 text-sm text-red-900">{message}</p>)}

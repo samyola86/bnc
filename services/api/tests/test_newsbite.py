@@ -133,7 +133,8 @@ def bucket(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "template,version", [("newspaper", 1), ("dark-editorial", 2), ("breaking-news", 2)]
+    "template,version",
+    [("newspaper", 1), ("newspaper", 2), ("dark-editorial", 2), ("breaking-news", 2)],
 )
 def test_preview_persistence_revision_approval_and_byte_parity(newsroom, bucket, template, version):  # noqa: F811
     client, factory, _ = newsroom

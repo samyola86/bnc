@@ -12,13 +12,14 @@ does not save, approve or publish.
 
 | ID | Version | Identity | Photo position | Headline size, preferred/minimum |
 | --- | --- | --- | --- | --- |
-| `newspaper` | 1 | Warm paper, serif masthead, black rules, deep-blue emphasis | Below writing | 64 / 40 px |
+| `newspaper` | 2 | Ivory organic grain, measured serif masthead/header, condensed headline, framed photo, optional blue emphasis | Below writing | 129 / 40 px |
 | `dark-editorial` | 2 | Full-background photo, lower fade, centered letter-spaced branding, red emphasis, quote bubble and vertical CTA | Full canvas | 80 / 44 px |
 | `breaking-news` | 2 | Full-background photo, 300px locked red rail, large outlined BREAKING NEWS, blue emphasis | Behind writing, beside rail | 68 / 44 px |
 | `modern-magazine` | 1 | Red/white background, rounded card/photo, category pill, blue emphasis | Above writing | 62 / 38 px |
 
-Template/layout versions match: Newspaper and Magazine use **1**; the corrected Dark
-Editorial and Breaking News designs use **2**. All output **1080 × 1350 RGB PNG**. Definitions
+Template/layout versions match: Magazine uses **1**; Newspaper, Dark Editorial and
+Breaking News use **2**. Newspaper v1 remains available for saved revisions.
+See [Newspaper v2 measurements and visual evidence](newspaper-v2.md). All output **1080 × 1350 RGB PNG**. Definitions
 and bounds live in `app/newsbite/renderer.py`; adding/changing approved templates requires
 an application release. A graphical template builder is not part of this phase.
 
@@ -30,16 +31,26 @@ references, never runtime backgrounds. The app gallery uses generated thumbnails
 The photographic templates were corrected after visual review: version 1 incorrectly
 placed the photograph in a separate frame. Version 2 uses full-background photography,
 Poppins ExtraBold/Regular English typography, shaped Noto Bengali, reference-style header,
-date, quotation bubble, arcs, social symbols, vertical CTA, red corner curves and a wider
+date, quotation bubble, arcs, vertical CTA, red corner curves and a wider
 outlined breaking-news rail. Headline emphasis begins on its own line when preceded by
 whitespace, without changing the saved headline or highlight offsets.
 
 The references are taller than 4:5, so spacing is adapted to the required 1080 × 1350 canvas.
 The editor supplies the photograph; the person embedded in a reference is not extracted
-or automatically reused. Social symbols and carousel dots are decorative, not active links.
+or automatically reused. Carousel dots are decorative, not active links.
+
+The current Dark Editorial design uses the supplied `BNC_Quote_Bubble.svg` artwork
+through a bundled transparent raster, preserving its red outline, white quotation
+paths, shading and glow. Its former primitive circle/quotes and social icon row
+were removed directly from version 2, as requested; no extra template version was
+created. Existing stored PNG files remain stored, while new previews and saves use
+the updated artwork. The SVG and raster ship in `app/newsbite/assets`; no runtime
+SVG dependency is needed.
 
 Version 1 remains reproducible for previously saved revisions and approvals. Selecting a
-photographic template now chooses version 2. An existing version-1 draft offers **Use
+photographic template or Newspaper now chooses version 2. Editable legacy Newspaper
+drafts open with the v2 preview and an unsaved-design notice; saving creates a new
+revision. In-review revisions retain their saved layout. Other version-1 drafts offer **Use
 matching reference layout**; this preserves content and requires saving a new revision.
 It never replaces a previously approved PNG in place.
 
@@ -88,8 +99,7 @@ uses cover cropping without stretching, applies the selected horizontal/vertical
 point, rounded Magazine clipping and dark-template gradients, and warns about undersized
 photos. Originals are never changed. There is no automatic photography retrieval or
 face detection; editors choose crop position and verify rights/essential subject framing.
-GIFs render their first frame. There is no media-library picker in the current app;
-an already attached cover is reused, or a replacement is uploaded.
+GIFs render their first frame. Use **Choose from media library** to reuse an existing image, or upload a replacement.
 
 `POST /stories/{id}/news-bite/preview` accepts `{news_bite, cover_image_id, category,
 image_caption}`. It enforces current session, CSRF and owned/assigned story write access.

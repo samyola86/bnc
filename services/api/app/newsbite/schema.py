@@ -28,10 +28,13 @@ class NewsBite(BaseModel):
         if self.template_version != self.layout_version:
             raise ValueError("Template and layout versions must match")
         if self.template_version == 2 and self.template_id not in {
+            "newspaper",
             "dark-editorial",
             "breaking-news",
         }:
-            raise ValueError("Version 2 is available for Dark Editorial and Breaking News")
+            raise ValueError(
+                "Version 2 is available for Newspaper, Dark Editorial and Breaking News"
+            )
         if self.highlight and self.highlight not in self.headline:
             raise ValueError("Highlighted segment must occur exactly in the graphic headline")
         if self.highlight:

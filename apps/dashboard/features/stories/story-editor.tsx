@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { NewsBiteEditor, initialNewsBite } from "./news-bite-editor";
+import { editableNewspaper } from "./newspaper-version";
 import { StoryPreview } from "./story-preview";
 import { AIDraftPanel, AppliedAI } from "./ai-draft-panel";
 import { useEffect, useState } from "react";
@@ -27,7 +28,7 @@ function DraftForm({ draft: initialDraft }: { draft: Draft }) {
   const [attempted, setAttempted] = useState(false);
   const [details, setDetails] = useState(() => detailsFrom(draft));
   const [initialBite, setInitialBite] = useState(() => draft.news_bite ?? initialNewsBite(draft.title, draft.summary));
-  const [bite, setBite] = useState(initialBite);
+  const [bite, setBite] = useState(() => editableNewspaper(initialBite, draft.format === "news_bite" && draft.status !== "IN_REVIEW"));
   const [renderValid, setRenderValid] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -43,14 +44,14 @@ function DraftForm({ draft: initialDraft }: { draft: Draft }) {
   const [credits, setCredits] = useState(draft.credits);
   const [version, setVersion] = useState(draft.version);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(() => bite !== initialBite ? "The Newspaper preview now uses the updated design. Save revision to attach it; your previously saved graphic is unchanged." : null);
   const [busy, setBusy] = useState(false);
   const readiness = readinessFor(title, body, category, tags, language, details, credits, bite, renderValid, captions);
   const locked = draft.status === "IN_REVIEW";
   // Compare with the form actually saved: API normalization and new credit
   // metadata must not count as new user edits.
   const snapshot = JSON.stringify({ bite, details, title, summary, body, category, language, tags, captions, credits });
-  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify({ bite: initialBite, details, title, summary, body, category, language, tags, captions, credits }));
   const dirty = snapshot !== savedSnapshot;
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } };
