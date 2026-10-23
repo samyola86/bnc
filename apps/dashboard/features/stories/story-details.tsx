@@ -5,6 +5,7 @@ import { Draft, newsroom } from "../feeds/api";
 import { Field, fieldClass } from "../feeds/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { MediaLibrary } from "../media/media-library";
 
 export const platforms = { wordpress: "WordPress", facebook: "Facebook", instagram: "Instagram", linkedin: "LinkedIn", x: "X" };
 export type Platform = keyof typeof platforms;
@@ -30,6 +31,7 @@ type Props = { value: StoryDetails; onChange: (value: StoryDetails) => void };
 export function CoverImage({ value, onChange, onUploading }: Props & { onUploading: (busy: boolean) => void }) {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   async function upload(file?: File) {
     if (!file) return;
     setError(null);
@@ -54,7 +56,9 @@ export function CoverImage({ value, onChange, onUploading }: Props & { onUploadi
       <Button type="button" variant="outline" disabled={uploading} onClick={() => onChange({ ...value, cover_image_id: null })}>Remove image</Button>
     </> : <p className="text-sm text-muted-foreground">Add a cover image to your article or news bite.</p>}
     <Field validationKey="cover_image_id" label={uploading ? "Uploading image…" : "Upload / replace image"}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={e => { void upload(e.target.files?.[0]); e.target.value = ""; }} className={fieldClass} /></Field>
-    <p className="text-xs text-muted-foreground">JPG, PNG, WebP or GIF · up to 3 MB. Save the revision to attach the image.</p>
+    <p className="text-xs text-muted-foreground">JPG, PNG, WebP or GIF · up to 3 MB. Uploads are stored in Media Library. Save the revision to attach the image.</p>
+    <Button type="button" variant="outline" disabled={uploading} onClick={() => setChoosing(open => !open)}>{choosing ? "Close media library" : "Choose from media library"}</Button>
+    {choosing && <MediaLibrary onUploading={busy => { setUploading(busy); onUploading(busy); }} onSelect={id => { onChange({ ...value, cover_image_id: id }); setChoosing(false); }} />}
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     <Field label="Image alt text"><input maxLength={1000} className={fieldClass} value={value.image_alt} onChange={e => onChange({ ...value, image_alt: e.target.value })} /></Field>
     <Field label="Image caption / credit"><input maxLength={2000} className={fieldClass} value={value.image_caption} onChange={e => onChange({ ...value, image_caption: e.target.value })} /></Field>

@@ -8,7 +8,7 @@ import warnings
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
 
@@ -33,6 +33,29 @@ def storage():
 
 class Upload(BaseModel):
     data: str = Field(max_length=4 * 1024 * 1024)
+
+
+@router.get("")
+def library(cursor: str | None = Query(None, max_length=2048)):
+    params = {"Bucket": get_settings().s3_bucket, "Prefix": "covers/", "MaxKeys": 24}
+    if cursor:
+        params["ContinuationToken"] = cursor
+    try:
+        result = storage().list_objects_v2(**params)
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in {"InvalidArgument", "InvalidToken"}:
+            raise HTTPException(422, "Invalid media cursor. Refresh the library") from None
+        raise HTTPException(503, "Media storage unavailable") from None
+    except BotoCoreError:
+        raise HTTPException(503, "Media storage unavailable") from None
+    items = []
+    for obj in result.get("Contents", []):
+        try:
+            media_id = uuid.UUID(obj["Key"].removeprefix("covers/"))
+        except ValueError:
+            continue
+        items.append({"id": str(media_id), "size": obj["Size"], "uploaded_at": obj["LastModified"]})
+    return {"items": items, "next_cursor": result.get("NextContinuationToken")}
 
 
 @router.post("", status_code=201)

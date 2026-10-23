@@ -3,7 +3,7 @@ import { validWriteOrigin } from "@/lib/auth-origins";
 
 const uuid = "[0-9a-fA-F-]{36}";
 const routes: Record<string, RegExp[]> = {
-  GET: [/^feeds\/summary$/, /^stories$/, new RegExp(`^stories/${uuid}/(versions|ai-jobs)$`), new RegExp(`^ai/jobs/${uuid}$`), /^sources$/, /^feeds\/items$/, /^ingestion\/settings$/, new RegExp(`^ingestion/jobs/${uuid}$`), new RegExp(`^stories/${uuid}$`)],
+  GET: [/^media$/, /^feeds\/summary$/, /^stories$/, new RegExp(`^stories/${uuid}/(versions|ai-jobs)$`), new RegExp(`^ai/jobs/${uuid}$`), /^sources$/, /^feeds\/items$/, /^ingestion\/settings$/, new RegExp(`^ingestion/jobs/${uuid}$`), new RegExp(`^stories/${uuid}$`)],
   POST: [/^stories$/, new RegExp(`^stories/${uuid}/ai-draft$`), /^sources$/, /^sources\/test$/, new RegExp(`^sources/${uuid}/(test|collect|archive|restore)$`), new RegExp(`^feeds/items/${uuid}/draft$`)],
   PATCH: [/^ingestion\/settings$/, new RegExp(`^sources/${uuid}$`), new RegExp(`^feeds/items/${uuid}$`), new RegExp(`^stories/${uuid}$`)],
 };

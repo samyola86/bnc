@@ -47,7 +47,11 @@ function DraftForm({ draft: initialDraft }: { draft: Draft }) {
   const [busy, setBusy] = useState(false);
   const readiness = readinessFor(title, body, category, tags, language, details, credits, bite, renderValid, captions);
   const locked = draft.status === "IN_REVIEW";
-  const dirty = JSON.stringify(bite) !== JSON.stringify(initialBite) || JSON.stringify(details) !== JSON.stringify(detailsFrom(draft)) || title !== draft.title || summary !== draft.summary || body !== draft.body || category !== draft.category || language !== draft.language || tags !== (draft.tags ?? []).join(", ") || JSON.stringify(captions) !== JSON.stringify(draft.social_captions ?? {}) || JSON.stringify(credits) !== JSON.stringify(draft.credits);
+  // Compare with the form actually saved: API normalization and new credit
+  // metadata must not count as new user edits.
+  const snapshot = JSON.stringify({ bite, details, title, summary, body, category, language, tags, captions, credits });
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const dirty = snapshot !== savedSnapshot;
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } };
     window.addEventListener("beforeunload", guard);
@@ -76,7 +80,7 @@ function DraftForm({ draft: initialDraft }: { draft: Draft }) {
         ...detailsPayload(details), base_version: version, title, summary, body, category, language, tags: tags.split(",").map(tag => tag.trim()).filter(Boolean), social_captions: captions, ai_job_id: aiJobId, news_bite: details.format === "news_bite" || draft.news_bite || JSON.stringify(bite) !== JSON.stringify(initialBite) ? bite : undefined,
         credits: credits.map(({ source_id, publisher_name, original_url, attribution_text, is_original_reporting, rights_status }) => ({ source_id, publisher_name, original_url: original_url || null, attribution_text, is_original_reporting, rights_status })),
       } });
-      setVersion(updated.version); setAiJobId(null); setDraft(updated); setInitialBite(updated.news_bite ?? bite);
+      setVersion(updated.version); setAiJobId(null); setDraft(updated); setInitialBite(updated.news_bite ?? bite); setSavedSnapshot(snapshot);
       if (queue) { await newsroom(`stories/${draft.id}/submit-review`, { method: "POST", body: { base_version: updated.version } }); router.push("/publishing"); return; }
       setNotice(`Saved revision ${updated.version}${updated.warnings.length ? ` · ${updated.warnings.join(", ")}` : ""}`);
     } catch (error) { const fields = (error as Error & { fields?: Record<string, string> }).fields ?? {}; setServerFields(fields); setAttempted(true); if (Object.keys(fields).length) { setPreviewing(false); setTimeout(() => focusField(Object.keys(fields)[0]), 0); } setError((error as Error).message); } finally { setBusy(false); }

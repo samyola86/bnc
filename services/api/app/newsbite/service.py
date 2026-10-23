@@ -119,15 +119,21 @@ def graphic_errors(content, version_id=None, *, verify_storage=False):
         errors["news_bite_render"] = "Save a successfully rendered graphic for this revision"
     elif verify_storage:
         response = image(uuid.UUID(artifact["asset_id"]))
-        with Image.open(io.BytesIO(response.body)) as png:
-            if (
-                png.format != "PNG"
-                or png.size != (1080, 1350)
-                or hashlib.sha256(response.body).hexdigest() != artifact.get("sha256")
-            ):
-                errors["news_bite_render"] = (
-                    "Saved graphic failed integrity verification; save again"
-                )
+        try:
+            with Image.open(io.BytesIO(response.body)) as png:
+                if (
+                    png.format != "PNG"
+                    or png.size != (1080, 1350)
+                    or hashlib.sha256(response.body).hexdigest() != artifact.get("sha256")
+                ):
+                    errors["news_bite_render"] = (
+                        "Saved graphic failed integrity verification; save again"
+                    )
+                png.verify()
+        except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
+            errors["news_bite_render"] = (
+                "Saved graphic failed integrity verification; save again"
+            )
     for channel in {"facebook", "instagram"} & set(content.get("destinations", [])):
         if not (
             content.get("social_captions", {}).get(channel, "").strip()

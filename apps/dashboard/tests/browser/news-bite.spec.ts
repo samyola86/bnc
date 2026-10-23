@@ -26,7 +26,7 @@ test("adaptive News Bite templates, save/reopen, exact PNG export and Article pr
   await page.getByLabel("instagram caption", { exact: true }).fill("Instagram reporting #BNC");
   await page.getByLabel("Facebook", { exact: true }).check();
   await page.getByLabel("Instagram", { exact: true }).check();
-  await page.getByLabel("Tags (comma separated)").fill("Bangladesh, Verified");
+  await page.getByLabel("Tags (comma separated)").fill("Bangladesh,  Verified, Bangladesh, ");
   const live = page.getByRole("img", { name: "Live News Bite graphic", exact: true });
   for (const [id, name] of [["newspaper", "BNC Newspaper"], ["dark-editorial", "BNC Dark Editorial"], ["breaking-news", "BNC Breaking News"], ["modern-magazine", "BNC Modern Magazine"]]) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
@@ -55,6 +55,19 @@ test("adaptive News Bite templates, save/reopen, exact PNG export and Article pr
   await page.getByRole("button", { name: "Close enlarged preview" }).click();
   await page.getByRole("button", { name: "Save revision", exact: true }).first().click();
   await expect(page.getByText(/Revision 2/).first()).toBeVisible();
+  const unloadIsBlocked = () => page.evaluate(() => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  await expect(page.getByRole("status").filter({ hasText: "Human review precedes publication" })).toContainText("Saved");
+  expect(await unloadIsBlocked()).toBe(false);
+  const supporting = page.getByLabel("Supporting description");
+  const savedSupporting = await supporting.inputValue();
+  await supporting.fill(savedSupporting + " New unsaved edit.");
+  expect(await unloadIsBlocked()).toBe(true);
+  await supporting.fill(savedSupporting);
+  expect(await unloadIsBlocked()).toBe(false);
   await page.reload();
   await expect(page.getByLabel("Photo focal point horizontal")).toHaveValue("0.1");
   await expect(page.getByRole("button", { name: /BNC Dark Editorial/ })).toHaveAttribute("aria-pressed", "true");

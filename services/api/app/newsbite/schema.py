@@ -44,6 +44,7 @@ class NewsBite(BaseModel):
                     and unicodedata.category(self.headline[end]).startswith("M")
                 )
                 or (start and self.headline[start - 1] == "\u09cd")
+                or (end < len(self.headline) and self.highlight[-1] == "\u09cd")
             ):
                 raise ValueError("Highlight a complete shaped character or word")
         return self
