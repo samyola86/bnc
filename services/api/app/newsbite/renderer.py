@@ -68,19 +68,20 @@ TEMPLATES = {
     ),
     "modern-magazine": Template(
         "BNC Modern Magazine",
-        "#cc162b",
-        "#151821",
-        "#1747bf",
-        94,
-        892,
-        210,
-        1180,
-        62,
+        "#e85a00",
+        "#ffffff",
+        "#ff791c",
+        129,
+        450,
+        347,
+        1028,
+        132,
         38,
-        600,
-        image_min=280,
-        image_preferred=420,
-        image_max=550,
+        500,
+        image_min=1350,
+        image_preferred=1350,
+        image_max=1350,
+        support_max_height=300,
     ),
 }
 
@@ -134,6 +135,10 @@ def block(text, size, width, serif=False):
 
 
 def layout(config, category="", photo_credit=""):
+    if config.template_id == "modern-magazine":
+        from .magazine import layout as magazine_layout
+
+        return magazine_layout(config, category, photo_credit)
     if config.template_id == "newspaper" and config.template_version == 2:
         from .newspaper import layout as newspaper_layout
 
@@ -230,6 +235,10 @@ def draw_block(
 
 
 def render(config: NewsBite, photo=None, category="", photo_credit=""):
+    if config.template_id == "modern-magazine":
+        from .magazine import render as magazine_render
+
+        return magazine_render(config, photo, category, photo_credit)
     if config.template_id == "newspaper" and config.template_version == 2:
         from .newspaper import render as newspaper_render
 
@@ -430,6 +439,15 @@ def definitions():
                 priority="reserve header/footer; fit text above minimum clear photo zone",
             )
     for value in values:
+        if value["id"] == "modern-magazine":
+            from .magazine import PANEL
+
+            value.update(
+                full_bleed=True,
+                panel=PANEL,
+                category_color="#ff791c",
+                priority="reserve branding/category; fit writing within frosted panel",
+            )
         if value["id"] == "newspaper":
             from .newspaper import GRID
 

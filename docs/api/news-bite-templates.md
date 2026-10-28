@@ -15,7 +15,7 @@ does not save, approve or publish.
 | `newspaper` | 2 | Ivory organic grain, measured serif masthead/header, condensed headline, framed photo, optional blue emphasis | Below writing | 129 / 40 px |
 | `dark-editorial` | 2 | Full-background photo, lower fade, centered letter-spaced branding, red emphasis, quote bubble and vertical CTA | Full canvas | 80 / 44 px |
 | `breaking-news` | 2 | Full-background photo, 300px locked red rail, large outlined BREAKING NEWS, blue emphasis | Behind writing, beside rail | 68 / 44 px |
-| `modern-magazine` | 1 | Red/white background, rounded card/photo, category pill, blue emphasis | Above writing | 62 / 38 px |
+| `modern-magazine` | 1 | Full photo, frosted rounded left panel, orange category tag, condensed white headline and BNC footer | Full canvas | 132 / 38 px |
 
 Template/layout versions match: Magazine uses **1**; Newspaper, Dark Editorial and
 Breaking News use **2**. Newspaper v1 remains available for saved revisions.
@@ -165,3 +165,28 @@ Rebuild the shared API/worker/scheduler images for `libraqm0` and bundled fonts,
 the updated dashboard. Keep the existing `.env`, volumes and network bindings unchanged.
 No new environment variable, AI provider call, intelligence feature or automatic publishing
 adapter is introduced.
+
+## Modern Magazine replacement
+
+The current Magazine design directly replaces the earlier red/white card layout.
+It uses the editor-selected photograph as a full 1080 ? 1350 cover crop, preserving
+focal controls and originals. A rounded frosted panel at (66,260)?(635,1074) blurs
+the same photo (19px radius) under a 55% dark tint and a thin cream border.
+Text occupies x=129 through 579, y=347 through 1028. Anton headlines shrink from
+132px to 38px, with shaped Noto Bengali fallback; Poppins supplies English summary
+and credits. Branding uses condensed type at the top and BNC NEWS / BNCNEWS.NET
+at the bottom. Typeface matching is approximate. The reference portrait is not
+a bundled background; editors keep choosing their own photo.
+
+The orange underline and **news category tag** use #ff791c. This tag reads the
+existing story category field (uppercase for display), independently of the selected
+headline highlight. The editor labels this field **News category (orange tag)**.
+Headline emphasis remains optional and blue; empty emphasis gives the reference-style
+white headline. Supporting copy, attribution/photo credits, footer and date remain
+stored. Custom footer and credits fit inside the panel; the date is not printed in
+this reference design. Missing category or overflowing text blocks export, with clear
+editing errors. Preview/download/save continue to share the same server PNG bytes.
+
+This is a direct replacement of Magazine version 1. Existing stored PNGs are not
+rewritten. No database/authentication changes or runtime dependencies were added.
+See [native samples and validation](../evidence/newsbite/modern-glass/README.md).

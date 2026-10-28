@@ -43,7 +43,11 @@ def test_adaptive_geometry_and_unicode(template, count, language):
             + scene["category"]["height"]
             + 4 * t.gap
         )
-        assert used <= t.bottom - t.top
+        if template == "modern-magazine":
+            assert scene["photo_frame"] == (0, 0, 1080, 1350)
+            assert scene["positions"]["footer"] + scene["footer"]["height"] <= 1028
+        else:
+            assert used <= t.bottom - t.top
     if count <= 15:
         assert not errors
 
@@ -106,7 +110,8 @@ def test_crop_export_dimensions_determinism_and_original_preservation(dimensions
         assert png == render(config, photo, "NEWS")[0]
         t = TEMPLATES[template]
         assert bool(result["warnings"]) == (
-            dimensions[0] < t.width or dimensions[1] < result["layout"]["image_height"]
+            dimensions[0] < (1080 if template == "modern-magazine" else t.width)
+            or dimensions[1] < result["layout"]["image_height"]
         )
         moved, _ = render(config.model_copy(update={"focal_x": 0, "focal_y": 0}), photo, "NEWS")
         assert png != moved
@@ -134,7 +139,13 @@ def bucket(monkeypatch):
 
 @pytest.mark.parametrize(
     "template,version",
-    [("newspaper", 1), ("newspaper", 2), ("dark-editorial", 2), ("breaking-news", 2)],
+    [
+        ("newspaper", 1),
+        ("newspaper", 2),
+        ("modern-magazine", 1),
+        ("dark-editorial", 2),
+        ("breaking-news", 2),
+    ],
 )
 def test_preview_persistence_revision_approval_and_byte_parity(newsroom, bucket, template, version):  # noqa: F811
     client, factory, _ = newsroom

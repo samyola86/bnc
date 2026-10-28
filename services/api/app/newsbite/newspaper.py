@@ -119,14 +119,14 @@ def visible_text(draw, text, f, x, y, *, align="left", fill=INK, stroke=0):
     return (round(left), y, round(left + width), y + box[3] - box[1])
 
 
-def tracked_text(draw, text, f, y, width, *, stroke=0, center=WIDTH / 2):
+def tracked_text(draw, text, f, y, width, *, stroke=0, center=WIDTH / 2, fill=INK):
     boxes = [ink_bounds(c, f, stroke) for c in text]
     widths = [b[2] - b[0] for b in boxes]
     spacing = (width - sum(widths)) / (len(text) - 1)
     cursor = center - width / 2
     bottom = y
     for char, char_width in zip(text, widths, strict=True):
-        bounds = visible_text(draw, char, f, cursor, y, stroke=stroke)
+        bounds = visible_text(draw, char, f, cursor, y, stroke=stroke, fill=fill)
         bottom = max(bottom, bounds[3])
         cursor += char_width + spacing
     return (round(center - width / 2), y, round(center + width / 2), bottom)
